@@ -1357,3 +1357,241 @@ h1, h2, h3, h4 {
 @keyframes reveal {
   to { opacity: 1; transform: none; }
 }
+
+/* =========================================================================
+   Mission detail page — the form flow for Missions 01–04
+   ========================================================================= */
+
+.mission-page {
+  padding-top: 56px;
+  padding-bottom: 160px;
+  min-height: 100vh;
+}
+
+.mission-form {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.mission-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mission-header .eyebrow {
+  margin: 0;
+}
+.mission-header h1 {
+  font-size: clamp(38px, 5.2vw, 66px);
+  line-height: 0.96;
+  margin: 0;
+}
+.mission-header .italic-serif {
+  font-size: clamp(18px, 2.1vw, 24px);
+  color: var(--ink-2);
+  margin: 4px 0 6px;
+}
+.mission-header .body {
+  max-width: 58ch;
+  color: var(--ink-3);
+  margin: 0;
+}
+.mission-signal {
+  margin-top: 4px;
+  color: var(--ink-4);
+}
+
+.mission-steps {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0 0;
+}
+.step-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: rgba(15, 27, 47, 0.55);
+  color: var(--ink-4);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.step-dot:hover {
+  border-color: var(--line-mint);
+  color: var(--mint-2);
+}
+.step-dot.active {
+  border-color: var(--mint-2);
+  color: var(--mint-2);
+  box-shadow: 0 0 20px rgba(94, 234, 212, 0.28);
+}
+.step-dot.done {
+  background: rgba(45, 212, 191, 0.12);
+  color: var(--mint-2);
+  border-color: var(--mint-2);
+}
+
+.mission-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.q-field {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid var(--line-1);
+  background: rgba(10, 19, 35, 0.6);
+  backdrop-filter: blur(10px);
+}
+.q-prompt {
+  font-family: "Satoshi", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(18px, 2vw, 22px);
+  color: var(--ink-1);
+  letter-spacing: -0.012em;
+  line-height: 1.25;
+}
+.q-required {
+  color: var(--mint-2);
+  margin-left: 6px;
+}
+.q-help {
+  margin: -2px 0 6px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.q-number {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line-1);
+  background: rgba(3, 7, 20, 0.5);
+}
+.q-number input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  color: var(--ink-1);
+  font-family: "Satoshi", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.02em;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.q-number input::-webkit-outer-spin-button,
+.q-number input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.q-unit {
+  color: var(--ink-4);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.q-choice,
+.q-bool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.q-option {
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(15, 27, 47, 0.55);
+  color: var(--ink-2);
+  font-family: "General Sans", "Satoshi", system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.q-option:hover {
+  border-color: var(--line-mint);
+  color: var(--mint-2);
+}
+.q-option.selected {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: var(--mint-2);
+  color: var(--mint-2);
+  box-shadow: 0 0 22px rgba(94, 234, 212, 0.22);
+}
+
+.mission-error {
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(252, 165, 165, 0.35);
+  background: rgba(252, 165, 165, 0.08);
+  color: #FCA5A5;
+  font-size: 13.5px;
+}
+
+.mission-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.mission-celebrate {
+  max-width: 620px;
+  margin: 80px auto 0;
+  padding: 48px 40px;
+  border-radius: 24px;
+  border: 1px solid var(--line-mint);
+  background: linear-gradient(
+    180deg,
+    rgba(45, 212, 191, 0.12),
+    rgba(6, 13, 28, 0.85)
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+.mission-celebrate h2 {
+  font-size: clamp(32px, 4vw, 48px);
+}
+.mission-celebrate .body {
+  color: var(--ink-2);
+  margin: 0 auto;
+  max-width: 42ch;
+}
+.mission-celebrate .btn-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .q-field {
+    padding: 22px 18px;
+  }
+  .mission-nav {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .mission-nav .btn {
+    justify-content: center;
+  }
+}

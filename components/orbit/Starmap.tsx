@@ -381,7 +381,7 @@ function MissionCards({ missions }: { missions: MissionStateView[] }) {
           <a
             key={m.key}
             className={`mcard ${stateClass}`}
-            href={`#${m.key.toLowerCase()}`}
+            href={m.status === "LOCKED" ? `#${m.key.toLowerCase()}` : `/missions/${m.key.toLowerCase()}`}
           >
             <div className="state">
               <span className="dot" />
