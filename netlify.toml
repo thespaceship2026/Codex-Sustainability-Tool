@@ -1,8 +1,57 @@
+# Netlify config for Orbit v2 (Codex Sustainability Tool, v2-orbit branch).
+#
+# Architectural choice for v2 (2026-04-10): Notion-as-canonical.
+#
+# Email captures go to the "Orbit — Email Capture" Notion database via
+# the NotionSink in lib/orbit/capture.ts — that's the real record of
+# subscribers. The SQLite DB that backs the mission dashboard is
+# ephemeral by design: the build step creates and seeds prisma/dev.db,
+# it ships into the function bundle as a read-only asset, and on every
+# cold start lib/prisma.ts copies it to /tmp/orbit.db so the request
+# lifecycle can write freely. Writes reset between cold starts. That's
+# fine for a public lead magnet — anything that needs durability goes
+# to Notion.
+#
+# If we ever want per-traveller persistence, swap SQLite for Neon or
+# Supabase Postgres and set DATABASE_URL in the Netlify env.
+
 [build]
-  command = "npm run build"
+  # 1. prisma generate  — rebuild the client for the Netlify environment
+  # 2. prisma db push   — create the SQLite schema at prisma/dev.db
+  # 3. db:seed          — populate mission demo data
+  # 4. next build       — compile the Next.js app (bundles prisma/dev.db
+  #                       into each function via [functions] below)
+  command = "npx prisma generate && npx prisma db push --skip-generate && npm run db:seed && next build"
+  publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_READ_ONLY_DEMO = "true"
+  # Build-time DB URL points at the repo-local file the seed populates.
+  # At runtime, lib/prisma.ts detects the serverless env and copies this
+  # file to /tmp/orbit.db (the only writable path on Lambda).
+  DATABASE_URL = "file:./dev.db"
+  NEXT_PUBLIC_READ_ONLY_DEMO = "false"
+  # Pin Node to match local dev. Next 14 supports 18.17+ or 20.x.
+  NODE_VERSION = "20"
+  # Skip Prisma's engine checksum verification in case a mirror blocks
+  # it during the build. Safe in a trusted CI environment.
+  PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING = "1"
 
+# Ship the seeded SQLite file into each function bundle so the runtime
+# copy-to-/tmp step in lib/prisma.ts has something to copy.
 [functions]
-  included_files = ["prisma/dev.db*"]
+  included_files = ["prisma/dev.db"]
+
+# Next.js on Netlify requires the official plugin to wire up SSR, ISR,
+# image optimization, and API routes as Netlify Functions.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Secure headers. Orbit is a public lead magnet — these are sensible
+# defaults without being so strict they break the Next.js runtime.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
