@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum MetricCategory {
+  ELECTRICITY
+  WATER
+  WASTE
+  RECYCLING
+  BUSINESS_TRAVEL
+  COMMUTING
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum AuditEntityType {
+  MONTHLY_METRIC
+  SUSTAINABILITY_GOAL
+  EMISSION_FACTOR
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  name           String
+  role           String        @default("admin")
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Organization {
+  id                  String               @id @default(cuid())
+  name                String
+  industry            String?
+  auditLogs           AuditLog[]
+  users               User[]
+  monthlyMetrics      MonthlyMetric[]
+  emissionFactors     EmissionFactor[]
+  sustainabilityGoals SustainabilityGoal[]
+  recommendationRules RecommendationRule[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model MonthlyMetric {
+  id                             String        @id @default(cuid())
+  organizationId                 String
+  organization                   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  month                          Int
+  year                           Int
+  electricityKwh                 Float
+  waterM3                        Float
+  wasteKg                        Float
+  recyclingKg                    Float
+  businessTravelKm               Float
+  commutingKm                    Float
+  notes                          String?
+  calculatedTotalEmissionsKgCo2e Float
+  appliedFactorSnapshot          Json?
+  createdAt                      DateTime      @default(now())
+  updatedAt                      DateTime      @updatedAt
+
+  @@unique([organizationId, year, month])
+  @@index([organizationId, year, month])
+}
+
+model EmissionFactor {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       MetricCategory
+  version        Int            @default(1)
+  effectiveDate  DateTime       @default(now())
+  isCurrent      Boolean        @default(true)
+  label          String
+  unit           String
+  factor         Float
+  description    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organizationId, category, version])
+  @@index([organizationId, category, isCurrent])
+}
+
+model SustainabilityGoal {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       MetricCategory
+  label          String
+  unit           String
+  targetValue    Float
+  targetYear     Int
+  targetMonth    Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organizationId, category])
+}
+
+model RecommendationRule {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       MetricCategory
+  title          String
+  description    String
+  priority       Int            @default(1)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId, category, isActive])
+}
+
+model AuditLog {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entityType     AuditEntityType
+  entityId       String
+  action         AuditAction
+  snapshotBefore Json?
+  snapshotAfter  Json?
+  createdAt      DateTime        @default(now())
+
+  @@index([organizationId, entityType, createdAt])
+}
