@@ -1,58 +1,80 @@
-import { PrismaClient } from "@prisma/client";
+// Orbit v2 — Database health check.
+//
+// A smoke test you can run after a seed or a migration to confirm the
+// database looks sane. Reports counts and flags obvious inconsistencies
+// (missing factor categories, travellers with no mission state, etc.).
 
-import { categoryOrder } from "../lib/constants";
+import { PrismaClient } from "@prisma/client";
+import { ALL_FACTORS } from "../lib/orbit/factors";
+import { MISSION_KEYS } from "../lib/orbit/missions";
 
 const prisma = new PrismaClient();
 
 async function main() {
   const issues: string[] = [];
-  const [orgCount, currentFactors, allFactors, metrics, latestAuditLog] = await Promise.all([
-    prisma.organization.count(),
-    prisma.emissionFactor.findMany({ where: { isCurrent: true } }),
-    prisma.emissionFactor.findMany(),
-    prisma.monthlyMetric.findMany({
-      select: { year: true, month: true, appliedFactorSnapshot: true }
-    }),
-    prisma.auditLog.findFirst({ orderBy: { createdAt: "desc" } })
+
+  const [
+    travellerCount,
+    missionStateCount,
+    answerCount,
+    logCount,
+    snapshotCount,
+    currentFactors
+  ] = await Promise.all([
+    prisma.traveller.count(),
+    prisma.missionState.count(),
+    prisma.missionAnswer.count(),
+    prisma.logEntry.count(),
+    prisma.signalSnapshot.count(),
+    prisma.emissionFactor.findMany({ where: { isCurrent: true } })
   ]);
 
-  if (orgCount === 0) {
-    issues.push("No organization found. Run npm run db:reset.");
+  if (travellerCount === 0) {
+    issues.push("No traveller found. Run `npm run db:seed`.");
   }
 
-  for (const category of categoryOrder) {
-    const currentCount = currentFactors.filter((factor) => factor.category === category).length;
-    if (currentCount === 0) {
-      issues.push(`Missing current factor for ${category}.`);
+  if (currentFactors.length === 0) {
+    issues.push("No current emission factors. Run `npm run db:seed`.");
+  }
+
+  // Check every factor category from the seed catalogue is represented.
+  const currentCategories = new Set(
+    currentFactors.map((f: (typeof currentFactors)[number]) => f.category)
+  );
+  for (const factor of ALL_FACTORS) {
+    if (!currentCategories.has(factor.category)) {
+      issues.push(`Missing current factor for category ${factor.category}.`);
     }
-    if (currentCount > 1) {
-      issues.push(`Multiple current factors found for ${category}.`);
+  }
+
+  // Every traveller should have a MissionState row per known mission.
+  const travellers = await prisma.traveller.findMany({
+    select: { id: true, handle: true }
+  });
+  for (const t of travellers as Array<{ id: string; handle: string }>) {
+    const states = await prisma.missionState.findMany({
+      where: { travellerId: t.id },
+      select: { key: true }
+    });
+    const keys = new Set(
+      (states as Array<{ key: string }>).map((s) => s.key)
+    );
+    for (const key of MISSION_KEYS) {
+      if (!keys.has(key)) {
+        issues.push(`Traveller ${t.handle} missing mission state for ${key}.`);
+      }
     }
-  }
-
-  const snapshotlessMetrics = metrics.filter((metric) => metric.appliedFactorSnapshot === null);
-  if (snapshotlessMetrics.length > 0) {
-    issues.push(`${snapshotlessMetrics.length} metric(s) are missing factor snapshots.`);
-  }
-
-  const duplicates = metrics.reduce<Record<string, number>>((acc, metric) => {
-    const key = `${metric.year}-${metric.month}`;
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
-  const duplicatePeriods = Object.entries(duplicates).filter(([, count]) => count > 1);
-  if (duplicatePeriods.length > 0) {
-    issues.push(`Duplicate monthly periods detected: ${duplicatePeriods.map(([key]) => key).join(", ")}.`);
   }
 
   console.log(
     JSON.stringify(
       {
-        organizations: orgCount,
-        metrics: metrics.length,
-        factors: allFactors.length,
+        travellers: travellerCount,
+        missionStates: missionStateCount,
+        answers: answerCount,
+        logs: logCount,
+        snapshots: snapshotCount,
         currentFactors: currentFactors.length,
-        latestAuditLogAt: latestAuditLog?.createdAt ?? null,
         issues
       },
       null,

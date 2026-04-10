@@ -1,24 +1,59 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
+// Orbit v2 — root layout.
+//
+// Responsibilities:
+//   • Load the four typefaces used across the app (Satoshi, General Sans,
+//     Newsreader, JetBrains Mono). Satoshi + General Sans live on Fontshare
+//     so we pull them via <link>. Newsreader + JetBrains Mono come from
+//     Google Fonts.
+//   • Mount the SkyBackdrop once so it sits behind every route.
+//   • Import globals.css so the Orbit design tokens and component styles
+//     apply to every page.
+//
+// Anything that should appear on every route (e.g. the quick-log dock)
+// lives here too.
 
-import "@/app/globals.css";
-import { AppShell } from "@/components/app-shell";
+import type { Metadata } from "next";
+import { SkyBackdrop } from "@/components/orbit/SkyBackdrop";
+import { Dock } from "@/components/orbit/Dock";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sustainability Tracker",
+  title: "Orbit — The Spaceship Academy",
   description:
-    "Local-first sustainability reporting dashboard for small businesses."
+    "Your orbit, this week. A four-mission climate signal for young humans — built by The Spaceship Academy.",
+  themeColor: "#030714"
 };
 
 export default function RootLayout({
   children
-}: Readonly<{
-  children: ReactNode;
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
+      <head>
+        {/* Fontshare: Satoshi + General Sans */}
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&f[]=general-sans@600,500,400&display=swap"
+        />
+        {/* Google Fonts: Newsreader (editorial serif) + JetBrains Mono */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        />
+      </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <SkyBackdrop />
+        {children}
+        <Dock />
       </body>
     </html>
   );

@@ -1,3 +1,10 @@
+// Orbit v2 schema — Solo mode
+//
+// Domain model centres on a single traveller moving through four missions.
+// A mission is a guided set of questions. Each answer is versioned and
+// snapshots the emission factor in effect at the time of the answer so
+// historical signal scores remain stable even as factors are updated.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,134 +14,126 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum MetricCategory {
-  ELECTRICITY
-  WATER
-  WASTE
-  RECYCLING
-  BUSINESS_TRAVEL
-  COMMUTING
+// ────────────────────────────────────────────────────────────────────────────
+// Traveller (v2: single-user demo; multi-user is v3)
+// ────────────────────────────────────────────────────────────────────────────
+
+model Traveller {
+  id        String   @id @default(cuid())
+  handle    String   @unique
+  name      String
+  mode      String   @default("SOLO") // SOLO | HOUSEHOLD | CLASSROOM (future)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  missions  MissionState[]
+  answers   MissionAnswer[]
+  logs      LogEntry[]
+  snapshots SignalSnapshot[]
 }
 
-enum AuditAction {
-  CREATE
-  UPDATE
-  DELETE
+// ────────────────────────────────────────────────────────────────────────────
+// Missions
+//
+// MissionKey is stored as a string because SQLite enum support is limited and
+// we want to add missions later without a migration. Valid values are managed
+// in lib/orbit/missions.ts.
+// ────────────────────────────────────────────────────────────────────────────
+
+model MissionState {
+  id          String    @id @default(cuid())
+  travellerId String
+  traveller   Traveller @relation(fields: [travellerId], references: [id], onDelete: Cascade)
+  key         String // HOME_BASELINE | FLIGHT_QUESTION | FOOD_CHOICES | DIGITAL_CARBON
+  status      String    @default("LOCKED") // LOCKED | ACTIVE | PARTIAL | LIT
+  progress    Int       @default(0) // 0–100
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([travellerId, key])
+  @@index([travellerId, status])
 }
 
-enum AuditEntityType {
-  MONTHLY_METRIC
-  SUSTAINABILITY_GOAL
-  EMISSION_FACTOR
+model MissionAnswer {
+  id             String    @id @default(cuid())
+  travellerId    String
+  traveller      Traveller @relation(fields: [travellerId], references: [id], onDelete: Cascade)
+  missionKey     String // Must match a MissionState.key for this traveller
+  questionKey    String // Unique per mission — e.g. "home.sqm", "flight.longhaul_count"
+  valueNum       Float?
+  valueStr       String?
+  valueBool      Boolean?
+  factorSnapshot Json? // Factor values captured at time of answer for reproducibility
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([travellerId, missionKey, questionKey])
+  @@index([travellerId, missionKey])
 }
 
-model User {
-  id             String        @id @default(cuid())
-  email          String        @unique
-  name           String
-  role           String        @default("admin")
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+// ────────────────────────────────────────────────────────────────────────────
+// Signal — the 0–100 score with weekly snapshots for the trajectory graph
+// ────────────────────────────────────────────────────────────────────────────
+
+model SignalSnapshot {
+  id            String    @id @default(cuid())
+  travellerId   String
+  traveller     Traveller @relation(fields: [travellerId], references: [id], onDelete: Cascade)
+  year          Int
+  weekOfYear    Int // ISO week
+  score         Int // 0–100
+  trajectory    String // STEADY | DRIFTING | CLIMBING | SETTLING
+  monthlyTCO2e  Float // Current best estimate in tonnes/month
+  breakdown     Json // { home: 0.9, flights: 1.2, food: 0.5, digital: 0.2 }
+  missionsLit   Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@unique([travellerId, year, weekOfYear])
+  @@index([travellerId, createdAt])
 }
 
-model Organization {
-  id                  String               @id @default(cuid())
-  name                String
-  industry            String?
-  auditLogs           AuditLog[]
-  users               User[]
-  monthlyMetrics      MonthlyMetric[]
-  emissionFactors     EmissionFactor[]
-  sustainabilityGoals SustainabilityGoal[]
-  recommendationRules RecommendationRule[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+// ────────────────────────────────────────────────────────────────────────────
+// Observation log — the ship's log
+// ────────────────────────────────────────────────────────────────────────────
+
+model LogEntry {
+  id          String    @id @default(cuid())
+  travellerId String
+  traveller   Traveller @relation(fields: [travellerId], references: [id], onDelete: Cascade)
+  kind        String // MISSION_PROGRESS | QUICK_LOG | SYSTEM | INSIGHT
+  title       String
+  body        String
+  valueLabel  String? // e.g. "+8 SIGNAL", "MISSION 01 LIT"
+  missionKey  String? // Optional link back to a mission
+  occurredAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([travellerId, occurredAt])
 }
 
-model MonthlyMetric {
-  id                             String        @id @default(cuid())
-  organizationId                 String
-  organization                   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  month                          Int
-  year                           Int
-  electricityKwh                 Float
-  waterM3                        Float
-  wasteKg                        Float
-  recyclingKg                    Float
-  businessTravelKm               Float
-  commutingKm                    Float
-  notes                          String?
-  calculatedTotalEmissionsKgCo2e Float
-  appliedFactorSnapshot          Json?
-  createdAt                      DateTime      @default(now())
-  updatedAt                      DateTime      @updatedAt
-
-  @@unique([organizationId, year, month])
-  @@index([organizationId, year, month])
-}
+// ────────────────────────────────────────────────────────────────────────────
+// Emission factors — versioned for reproducibility
+//
+// Unlike v1 this is not scoped to an organisation. It's a global reference
+// table the signal calculation draws from. Each factor has a category key
+// matched against the category emitted by a MissionAnswer.
+// ────────────────────────────────────────────────────────────────────────────
 
 model EmissionFactor {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  category       MetricCategory
-  version        Int            @default(1)
-  effectiveDate  DateTime       @default(now())
-  isCurrent      Boolean        @default(true)
-  label          String
-  unit           String
-  factor         Float
-  description    String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id            String   @id @default(cuid())
+  category      String // HOME_ELECTRICITY | HOME_GAS | FLIGHT_SHORT | ... see lib/orbit/factors.ts
+  label         String
+  unit          String // e.g. "kWh", "km", "meal", "GB"
+  factor        Float // kgCO2e per unit
+  version       Int      @default(1)
+  effectiveDate DateTime @default(now())
+  isCurrent     Boolean  @default(true)
+  source        String? // e.g. "UK DEFRA 2024", "IPCC AR6 WG3"
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@unique([organizationId, category, version])
-  @@index([organizationId, category, isCurrent])
-}
-
-model SustainabilityGoal {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  category       MetricCategory
-  label          String
-  unit           String
-  targetValue    Float
-  targetYear     Int
-  targetMonth    Int
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-
-  @@unique([organizationId, category])
-}
-
-model RecommendationRule {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  category       MetricCategory
-  title          String
-  description    String
-  priority       Int            @default(1)
-  isActive       Boolean        @default(true)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-
-  @@index([organizationId, category, isActive])
-}
-
-model AuditLog {
-  id             String          @id @default(cuid())
-  organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  entityType     AuditEntityType
-  entityId       String
-  action         AuditAction
-  snapshotBefore Json?
-  snapshotAfter  Json?
-  createdAt      DateTime        @default(now())
-
-  @@index([organizationId, entityType, createdAt])
+  @@unique([category, version])
+  @@index([category, isCurrent])
 }
