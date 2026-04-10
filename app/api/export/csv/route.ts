@@ -1,15 +1,10 @@
-import { getPrimaryOrganization } from "@/lib/data";
+import { getDashboardData } from "@/lib/data";
 import { metricsToCsv } from "@/lib/csv";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const organization = await getPrimaryOrganization();
-  const metrics = await prisma.monthlyMetric.findMany({
-    where: { organizationId: organization.id },
-    orderBy: [{ year: "asc" }, { month: "asc" }]
-  });
+  const { metrics } = await getDashboardData();
 
   const csv = metricsToCsv(metrics);
 
