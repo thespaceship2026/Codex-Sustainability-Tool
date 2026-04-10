@@ -176,10 +176,6 @@ To sanity-check the database after a seed: `npm run db:doctor`.
 - **Mode switcher persistence.** The SOLO / HOUSEHOLD / CLASSROOM
   tabs in the TopNav are presentational — they don't yet write back
   to the Traveller row.
-- **Email capture for the lead magnet.** The course bridge in
-  `Perspective.tsx` links to the Hun School page but doesn't capture
-  an email before handing off. This is the single highest-leverage
-  thing to add before launch.
 - **Analytics / tracking.** No PostHog, no Plausible, no Netlify
   Analytics hookup yet.
 - **Tests.** `tests/emissions.test.ts` from v1 was removed with the
@@ -190,10 +186,14 @@ To sanity-check the database after a seed: `npm run db:doctor`.
 
 ## Things worth deciding before merge to `main`
 
-1. **Email capture placement.** Inline under the Perspective section?
-   A gate before mission 01? A subtle dock-level chip? My hunch is
-   inline under Perspective — the reader is already in "what's this
-   for me" mode when they arrive there.
+1. **Email capture — ✅ landed.** Inline under the Perspective essay,
+   above the Thrive Lab course bridge. Writes to an `EmailCapture`
+   Prisma table (source of truth) and fires a pluggable sink. Notion
+   is the default destination — set `NOTION_CAPTURE_TOKEN` and
+   `NOTION_CAPTURE_DATABASE_ID` to activate. If they're missing, rows
+   still land in the DB and sync status is `SKIPPED`. See
+   `lib/orbit/capture.ts` for the sink interface if we want to swap
+   destinations later (HubSpot, ConvertKit, plain webhook, etc).
 2. **Copy pass.** The current mission descriptions and log entry
    copy is first-draft. A run through `craigs-writing-style` would
    tighten them without losing the warm-educator tone.
@@ -214,7 +214,12 @@ To sanity-check the database after a seed: `npm run db:doctor`.
 
 ## Next milestones (post-merge)
 
-1. **Email capture + webhook to a CRM** — the actual lead magnet bit.
+1. **Set up the Notion capture database** so the sink flips from
+   `SKIPPED` to `SYNCED` in production. Required properties: `Email`
+   (title), `Source` (rich text), `Signal at capture` (number),
+   `Monthly tCO2e` (number), `Captured at` (date), `Capture ID`
+   (rich text). Then drop the token and database ID into the Netlify
+   environment.
 2. **Unit tests** for `calculateSignal()` covering the piecewise
    score boundaries and the trajectory classifier, plus tests for
    `saveMissionAnswers()` covering mission-lit transitions and log

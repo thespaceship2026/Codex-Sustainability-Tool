@@ -1,8 +1,18 @@
-// Perspective — editorial essay + "Thrive Lab" course bridge card.
-// Purely static copy for v2. If we want this to rotate per-week later,
-// lift the copy into a CMS or a data file.
+// Perspective — editorial essay, inline email capture, and "Thrive Lab"
+// course bridge card. The capture sits between the essay and the bridge
+// so the funnel reads: understand → soft ask → hard CTA.
+//
+// Copy is static for v2. If we want this to rotate per-week later, lift
+// the copy into a CMS or a data file.
 
-export function Perspective() {
+import { EmailCapture } from "./EmailCapture";
+
+type PerspectiveProps = {
+  signal?: number | null;
+  monthlyTCO2e?: number | null;
+};
+
+export function Perspective({ signal, monthlyTCO2e }: PerspectiveProps = {}) {
   return (
     <section className="section wrap perspective">
       <div className="hdr">
@@ -48,6 +58,8 @@ export function Perspective() {
           </p>
         </div>
       </div>
+
+      <EmailCapture signal={signal ?? null} monthlyTCO2e={monthlyTCO2e ?? null} />
 
       <div id="bridge" className="course-bridge">
         <div>

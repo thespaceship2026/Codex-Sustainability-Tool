@@ -43,7 +43,10 @@ export default async function OrbitDashboardPage() {
 
       <Descent signal={snapshot.signal} />
 
-      <Perspective />
+      <Perspective
+        signal={snapshot.signal.score}
+        monthlyTCO2e={snapshot.signal.monthlyTCO2e}
+      />
 
       <ObservationLog entries={snapshot.log} />
 

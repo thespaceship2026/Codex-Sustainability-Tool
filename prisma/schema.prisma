@@ -137,3 +137,32 @@ model EmissionFactor {
   @@unique([category, version])
   @@index([category, isCurrent])
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Email capture — lead magnet sign-ups for the weekly Orbit digest.
+//
+// Not tied to a Traveller in v2 because Orbit is public and anonymous until
+// someone opts in. We keep a light snapshot of their current signal so the
+// first digest can say "you started at X" without another lookup. Sync state
+// tracks delivery to Notion (the current destination) so we can retry or
+// swap destinations later without losing the queue.
+// ────────────────────────────────────────────────────────────────────────────
+
+model EmailCapture {
+  id             String    @id @default(cuid())
+  email          String
+  source         String    @default("orbit_perspective") // where on the page it came from
+  travellerId    String? // optional link if we have one in session
+  signalAtCapture Int? // snapshot of their signal score at sign-up
+  monthlyTCO2e   Float? // snapshot of monthly tonnes at sign-up
+  consent        Boolean   @default(true) // explicit opt-in checkbox state
+  syncStatus     String    @default("PENDING") // PENDING | SYNCED | FAILED | SKIPPED
+  syncedAt       DateTime?
+  syncError      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([email])
+  @@index([syncStatus, createdAt])
+}
