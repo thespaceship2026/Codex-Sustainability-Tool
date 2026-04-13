@@ -1,52 +1,135 @@
 "use client";
 
-// Orbit v2 — RevealScreen
+// Orbit v2 — RevealScreen (redesigned)
 //
-// The payoff moment. After five quiz questions, this screen animates the
-// signal score from 0 to the computed value, shows a single sharp insight,
-// then presents the email capture and Thrive Lab bridge.
+// The payoff moment. After five quiz questions (each with a learning
+// fact), this screen:
 //
-// This is where the lead magnet converts: the user just learned something
-// surprising about their own footprint, and the capture appears while
-// that curiosity is fresh.
+//   1. Animates the signal score (0 → computed value)
+//   2. Shows a single sharp insight
+//   3. Presents an interactive "swap lever" — pick one change, see
+//      how much it moves your score (agency, not guilt)
+//   4. Features a closing Carbon Almanac quote
+//   5. Email capture + Thrive Lab bridge
+//
+// The redesign shifts the emotional register from "here's your grade"
+// to "here's what you just learned — and the ONE thing that could
+// change the picture most."
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { REVEAL_QUOTES } from "@/lib/orbit/almanac-facts";
 import type { QuizResult } from "./QuizFlow";
 
 type Props = {
   result: QuizResult;
-  onExplore: () => void; // "Show me the full dashboard"
+  onExplore: () => void;
 };
 
+// ────────────────────────────────────────────────────────────────────────────
+// Swap lever options — "What if you changed ONE thing?"
+// Each swap shows a hypothetical CO₂ reduction and reframes the score.
+// ────────────────────────────────────────────────────────────────────────────
+
+type SwapOption = {
+  id: string;
+  label: string;
+  description: string;
+  /** Approximate monthly tCO₂e saved */
+  savingsKg: number;
+  relevantTo: string[]; // answer values that make this swap relevant
+  icon: string;
+};
+
+const SWAP_OPTIONS: SwapOption[] = [
+  {
+    id: "flight",
+    label: "Skip one flight",
+    description: "One fewer round-trip this year saves the equivalent of months of driving.",
+    savingsKg: 230,
+    relevantTo: ["one_short", "one_long", "two_plus", "frequent"],
+    icon: "\u2708\uFE0F",
+  },
+  {
+    id: "meat",
+    label: "Two plant days a week",
+    description: "Swap beef for plants just two days. That\u2019s 30 fewer pounds of CO\u2082 each time.",
+    savingsKg: 45,
+    relevantTo: ["heavy_meat", "meat", "flexitarian"],
+    icon: "\uD83C\uDF31",
+  },
+  {
+    id: "transport",
+    label: "Commute without driving",
+    description: "Bike, bus, or walk one day a week. A small shift in how you move changes the math.",
+    savingsKg: 60,
+    relevantTo: ["petrol", "shared"],
+    icon: "\uD83D\uDEB2",
+  },
+  {
+    id: "heat",
+    label: "Switch to a heat pump",
+    description: "Heat pumps use a fraction of the energy that gas or oil furnaces do.",
+    savingsKg: 80,
+    relevantTo: ["gas", "oil"],
+    icon: "\uD83C\uDFE0",
+  },
+  {
+    id: "digital",
+    label: "Unplug what you\u2019re not using",
+    description: "Standby power adds up. Gaming consoles alone can use 150\u2013216 Wh per hour of play.",
+    savingsKg: 15,
+    relevantTo: ["US", "UK", "FR", "DE", "OTHER"],
+    icon: "\uD83D\uDD0C",
+  },
+];
+
 export function RevealScreen({ result, onExplore }: Props) {
-  const { score, monthlyTCO2e, breakdown, insight } = result;
+  const { score, monthlyTCO2e, breakdown, insight, answers } = result;
   const [displayScore, setDisplayScore] = useState(0);
-  const [phase, setPhase] = useState<"counting" | "insight" | "capture">("counting");
+  const [phase, setPhase] = useState<"counting" | "insight" | "swap" | "capture">("counting");
+  const [selectedSwap, setSelectedSwap] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(true);
   const [captureStatus, setCaptureStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [captureError, setCaptureError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Animate score counter — uses setInterval + Date.now so the animation
-  // completes even if the tab isn't in the foreground (RAF pauses in
-  // background tabs, which can leave the counter at zero).
+  // Pick a quote deterministically from the score
+  const quote = REVEAL_QUOTES[score % REVEAL_QUOTES.length];
+
+  // Find relevant swaps based on user&apos;s answers
+  const relevantSwaps = useMemo(() => {
+    const answerValues = Object.values(answers ?? {});
+    return SWAP_OPTIONS.filter(sw =>
+      sw.relevantTo.some(v => answerValues.includes(v))
+    ).slice(0, 3); // max 3 options
+  }, [answers]);
+
+  // Compute hypothetical savings
+  const swapSavingsMonthly = useMemo(() => {
+    if (!selectedSwap) return 0;
+    const sw = SWAP_OPTIONS.find(s => s.id === selectedSwap);
+    return sw ? sw.savingsKg / 1000 : 0; // convert kg to tonnes
+  }, [selectedSwap]);
+
+  const adjustedMonthly = Math.max(0, monthlyTCO2e - swapSavingsMonthly);
+
+  // Animate score counter
   useEffect(() => {
-    const duration = 1800; // ms
+    const duration = 1800;
     const start = Date.now();
 
     function tick() {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplayScore(Math.round(eased * score));
 
       if (progress >= 1) {
         if (timerRef.current) clearInterval(timerRef.current);
-        // Score counted up — show insight after a beat
         setTimeout(() => setPhase("insight"), 400);
-        setTimeout(() => setPhase("capture"), 1600);
+        setTimeout(() => setPhase("swap"), 1800);
+        setTimeout(() => setPhase("capture"), 3200);
       }
     }
 
@@ -56,7 +139,7 @@ export function RevealScreen({ result, onExplore }: Props) {
     };
   }, [score]);
 
-  // Determine the dominant category for the breakdown visual
+  // Determine dominant category for breakdown
   const total = breakdown.home + breakdown.flights + breakdown.food + breakdown.digital;
   const bars = [
     { key: "home", label: "Home", value: breakdown.home, color: "var(--mint)" },
@@ -96,6 +179,7 @@ export function RevealScreen({ result, onExplore }: Props) {
           signalAtCapture: score,
           monthlyTCO2e,
           consent,
+          selectedSwap,
         }),
       });
 
@@ -113,12 +197,19 @@ export function RevealScreen({ result, onExplore }: Props) {
 
   return (
     <div className="reveal">
-      {/* ── Signal score ─────────────────────────────────────────── */}
-      <div className="reveal-score-section">
+      {/* ── Discovery header ────────────────────────────────────────── */}
+      <div className="reveal-discovery-header">
         <div className="reveal-eyebrow">
           <span className="dot" /> YOUR ORBIT
         </div>
+        <p className="reveal-discovery-intro">
+          Based on five answers, here&apos;s a first look at where your
+          carbon footprint actually lives.
+        </p>
+      </div>
 
+      {/* ── Signal score ─────────────────────────────────────────── */}
+      <div className="reveal-score-section">
         <div className="reveal-gauge">
           <svg viewBox="0 0 200 200" className="reveal-gauge-svg">
             <circle cx="100" cy="100" r="82" fill="none" stroke="var(--line-1)" strokeWidth="6" />
@@ -145,7 +236,7 @@ export function RevealScreen({ result, onExplore }: Props) {
         </div>
 
         <div className="reveal-tco2e">
-          {monthlyTCO2e.toFixed(1)} tonnes CO₂ per month
+          {monthlyTCO2e.toFixed(1)} tonnes CO&#8322; per month
         </div>
 
         {/* Breakdown bars */}
@@ -175,6 +266,54 @@ export function RevealScreen({ result, onExplore }: Props) {
         <p>{insight}</p>
       </div>
 
+      {/* ── Swap lever — "What if you changed ONE thing?" ─────── */}
+      <div className={`reveal-swap ${phase === "swap" || phase === "capture" ? "visible" : ""}`}>
+        <h3 className="reveal-swap-headline">What if you changed one thing?</h3>
+        <p className="reveal-swap-subtext">
+          Pick a swap. See how much it moves the needle.
+        </p>
+
+        <div className="reveal-swap-options">
+          {relevantSwaps.map((sw) => (
+            <button
+              key={sw.id}
+              className={`reveal-swap-btn ${selectedSwap === sw.id ? "active" : ""}`}
+              onClick={() => setSelectedSwap(selectedSwap === sw.id ? null : sw.id)}
+            >
+              <span className="reveal-swap-icon">{sw.icon}</span>
+              <span className="reveal-swap-label">{sw.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {selectedSwap && (
+          <div className="reveal-swap-result">
+            <p className="reveal-swap-description">
+              {SWAP_OPTIONS.find(s => s.id === selectedSwap)?.description}
+            </p>
+            <div className="reveal-swap-savings">
+              <span className="reveal-swap-from">{monthlyTCO2e.toFixed(2)}</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="reveal-swap-arrow">
+                <path d="M5 12h14M13 5l7 7-7 7" stroke="var(--mint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="reveal-swap-to">{adjustedMonthly.toFixed(2)}</span>
+              <span className="reveal-swap-unit">tonnes/mo</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Carbon Almanac quote ─────────────────────────────────── */}
+      <div className={`reveal-almanac-quote ${phase === "capture" ? "visible" : ""}`}>
+        <blockquote>
+          <p>&ldquo;{quote.text}&rdquo;</p>
+          <cite>&mdash; {quote.attribution}</cite>
+        </blockquote>
+        <div className="reveal-almanac-credit">
+          From <strong>The Carbon Almanac</strong> &middot; Partner of The Spaceship Academy
+        </div>
+      </div>
+
       {/* ── Email capture ────────────────────────────────────────── */}
       <div className={`reveal-capture ${phase === "capture" ? "visible" : ""}`}>
         {captureStatus === "success" ? (
@@ -198,8 +337,7 @@ export function RevealScreen({ result, onExplore }: Props) {
             <p>
               This is a first pass from five questions. The complete Orbit
               dashboard tracks four missions, shows where your footprint
-              actually lives, and updates weekly. We&apos;ll send your first
-              full report on Sunday.
+              actually lives, and updates weekly.
             </p>
             <form className="reveal-form" onSubmit={handleCapture} noValidate>
               <div className="reveal-form-row">
@@ -224,7 +362,7 @@ export function RevealScreen({ result, onExplore }: Props) {
                   required
                 />
                 <button type="submit" className="btn btn-mint" disabled={captureStatus === "submitting"}>
-                  {captureStatus === "submitting" ? "Sending…" : "Send my report"}
+                  {captureStatus === "submitting" ? "Sending\u2026" : "Send my report"}
                 </button>
               </div>
               <label className="reveal-consent">

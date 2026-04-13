@@ -1,26 +1,26 @@
 "use client";
 
-// Orbit v2 — QuizFlow
+// Orbit v2 — QuizFlow (with Carbon Almanac learning moments)
 //
-// Five-question onboarding quiz that replaces the cold dashboard landing.
-// Each question maps to a real mission question key so the signal engine
-// can compute a first-pass score from minimal inputs. The flow:
+// Five-question onboarding quiz. Each question maps to a real mission
+// question key so the signal engine can compute a first-pass score.
 //
-//   Landing → Q1 → Q2 → Q3 → Q4 → Q5 → Reveal (signal + insight + capture)
+// NEW: After each answer, a FactCard from The Carbon Almanac appears
+// before the next question. This turns the quiz from a test into a
+// learning experience — each answer unlocks a surprising, relevant fact.
 //
-// No Prisma, no API calls during the quiz. Everything runs client-side
-// using calculateSignal() from lib/orbit/signal. On capture, we POST
-// to /api/capture with the computed signal and monthlyTCO2e.
+//   Landing → Q1 → Fact → Q2 → Fact → Q3 → Fact → Q4 → Fact → Q5 → Fact → Reveal
 //
-// Mobile-first. Big tap targets. One question at a time.
+// No Prisma, no API calls during the quiz. Everything runs client-side.
+// Mobile-first. Big tap targets. One screen at a time.
 
 import { useState, useCallback } from "react";
 import { calculateSignal, type AnswerInput, type MissionStateInput } from "@/lib/orbit/signal";
+import { pickFact } from "@/lib/orbit/almanac-facts";
+import { FactCard } from "./FactCard";
 
 // ────────────────────────────────────────────────────────────────────────────
-// Quiz question definitions — 5 carefully chosen questions that cover the
-// biggest signal drivers: country, transport, flights, diet, and one
-// lifestyle question that often surprises people.
+// Quiz question definitions
 // ────────────────────────────────────────────────────────────────────────────
 
 type QuizOption = { value: string; label: string; emoji?: string };
@@ -54,7 +54,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.car_ownership",
     prompt: "How do you get around?",
-    subtext: "Your daily commute shapes more of your footprint than you'd think.",
+    subtext: "Your daily commute shapes more of your footprint than you\u2019d think.",
     options: [
       { value: "none", label: "No car, mostly walk, bike, or transit" },
       { value: "shared", label: "I share a car or use one occasionally" },
@@ -109,8 +109,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 ];
 
 // ────────────────────────────────────────────────────────────────────────────
-// Insight generator — picks the right message based on which category
-// dominates the signal breakdown.
+// Insight generator
 // ────────────────────────────────────────────────────────────────────────────
 
 function generateInsight(breakdown: { home: number; flights: number; food: number; digital: number }, monthlyTCO2e: number): string {
@@ -131,7 +130,7 @@ function generateInsight(breakdown: { home: number; flights: number; food: numbe
     return "What you eat is shaping your footprint more than you might think. A few shifts on your plate can move the needle faster than almost anything else.";
   }
   if (monthlyTCO2e < 0.3) {
-    return "You're already lighter than most. The full picture will show you exactly where the remaining weight sits.";
+    return "You\u2019re already lighter than most. The full picture will show you exactly where the remaining weight sits.";
   }
   return "Your footprint is spread across a few areas. The full picture will show you which ones are worth focusing on first.";
 }
@@ -157,56 +156,64 @@ type Props = {
 // ────────────────────────────────────────────────────────────────────────────
 
 export function QuizFlow({ onComplete }: Props) {
-  const [phase, setPhase] = useState<"landing" | "quiz">("landing");
+  const [phase, setPhase] = useState<"landing" | "question" | "fact">("landing");
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [animating, setAnimating] = useState(false);
+  const [lastAnswer, setLastAnswer] = useState<string>("");
 
   const currentQ = QUIZ_QUESTIONS[step];
-  const progress = step / QUIZ_QUESTIONS.length;
+  const progress = (step + (phase === "fact" ? 0.5 : 0)) / QUIZ_QUESTIONS.length;
 
   const handleSelect = useCallback((value: string) => {
     if (animating) return;
 
     const newAnswers = { ...answers, [currentQ.questionKey]: value };
     setAnswers(newAnswers);
+    setLastAnswer(value);
     setAnimating(true);
 
-    // Brief pause to show selection, then advance
+    // Brief pause to show selection, then show fact card
     setTimeout(() => {
-      if (step < QUIZ_QUESTIONS.length - 1) {
-        setStep(step + 1);
-        setAnimating(false);
-      } else {
-        // Final question answered — compute signal and call onComplete
-        const answerInputs: AnswerInput[] = QUIZ_QUESTIONS.map((q) => ({
-          missionKey: q.missionKey,
-          questionKey: q.questionKey,
-          valueStr: newAnswers[q.questionKey] ?? null,
-          valueNum: null,
-          valueBool: null,
-        }));
-
-        const missions: MissionStateInput[] = [
-          { key: "HOME_BASELINE", status: "PARTIAL" },
-          { key: "FLIGHT_QUESTION", status: "PARTIAL" },
-          { key: "FOOD_CHOICES", status: "PARTIAL" },
-          { key: "DIGITAL_CARBON", status: "LOCKED" },
-        ];
-
-        const result = calculateSignal({ answers: answerInputs, missions });
-        const insight = generateInsight(result.breakdown, result.monthlyTCO2e);
-
-        onComplete({
-          score: result.score,
-          monthlyTCO2e: result.monthlyTCO2e,
-          breakdown: result.breakdown,
-          insight,
-          answers: newAnswers,
-        });
-      }
+      setPhase("fact");
+      setAnimating(false);
     }, 400);
-  }, [answers, animating, currentQ, step, onComplete]);
+  }, [answers, animating, currentQ]);
+
+  const handleFactContinue = useCallback(() => {
+    if (step < QUIZ_QUESTIONS.length - 1) {
+      // Advance to next question
+      setStep(step + 1);
+      setPhase("question");
+    } else {
+      // Final question — compute signal and call onComplete
+      const answerInputs: AnswerInput[] = QUIZ_QUESTIONS.map((q) => ({
+        missionKey: q.missionKey,
+        questionKey: q.questionKey,
+        valueStr: answers[q.questionKey] ?? null,
+        valueNum: null,
+        valueBool: null,
+      }));
+
+      const missions: MissionStateInput[] = [
+        { key: "HOME_BASELINE", status: "PARTIAL" },
+        { key: "FLIGHT_QUESTION", status: "PARTIAL" },
+        { key: "FOOD_CHOICES", status: "PARTIAL" },
+        { key: "DIGITAL_CARBON", status: "LOCKED" },
+      ];
+
+      const result = calculateSignal({ answers: answerInputs, missions });
+      const insight = generateInsight(result.breakdown, result.monthlyTCO2e);
+
+      onComplete({
+        score: result.score,
+        monthlyTCO2e: result.monthlyTCO2e,
+        breakdown: result.breakdown,
+        insight,
+        answers,
+      });
+    }
+  }, [step, answers, onComplete]);
 
   // ── Landing screen ──────────────────────────────────────────────────────
 
@@ -224,12 +231,12 @@ export function QuizFlow({ onComplete }: Props) {
           </h1>
           <p className="quiz-lede">
             Five questions. Two minutes. A first honest look at the
-            choices that shape your footprint, and which ones actually
-            matter. No account needed.
+            choices that shape your footprint &mdash; and what might
+            surprise you along the way.
           </p>
           <button
             className="btn btn-mint btn-lg"
-            onClick={() => setPhase("quiz")}
+            onClick={() => setPhase("question")}
           >
             Find out
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -237,7 +244,7 @@ export function QuizFlow({ onComplete }: Props) {
             </svg>
           </button>
           <p className="quiz-footnote">
-            Built by The Spaceship Academy. Takes about two minutes.
+            Powered by The Carbon Almanac &middot; Built by The Spaceship Academy
           </p>
         </div>
 
@@ -252,6 +259,27 @@ export function QuizFlow({ onComplete }: Props) {
             <text x="60" y="76" textAnchor="middle" fill="var(--ink-5)" fontSize="10" fontFamily="JetBrains Mono">?? / 100</text>
           </svg>
         </div>
+      </div>
+    );
+  }
+
+  // ── Fact card (between questions) ────────────────────────────────────────
+
+  if (phase === "fact") {
+    const fact = pickFact(currentQ.questionKey, lastAnswer);
+    return (
+      <div className="quiz-container">
+        {/* Progress bar */}
+        <div className="quiz-progress">
+          <div className="quiz-progress-fill" style={{ width: `${progress * 100}%` }} />
+        </div>
+
+        <FactCard
+          fact={fact}
+          questionIndex={step}
+          totalQuestions={QUIZ_QUESTIONS.length}
+          onContinue={handleFactContinue}
+        />
       </div>
     );
   }
