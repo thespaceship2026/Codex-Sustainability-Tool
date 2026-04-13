@@ -30,26 +30,26 @@ import { REVEAL_QUOTES, pickFact } from "@/lib/orbit/almanac-facts";
 const CO2_TONNES_PER_SECOND = 1167;
 
 // Three curated Almanac facts for the scroll narrative
-// Arc: SCALE → SURPRISE → AGENCY
+// Arc: AWARENESS → DISCOVERY → AGENCY
 const SCROLL_FACTS = [
   {
     num: "01",
-    headline: "One metric ton is huge.",
-    body: "A single metric ton of CO\u2082 would fill a cube about 10 metres on each side. The average American is responsible for about 14 of those cubes every year. The target to stay within safe limits? Around two and a half.",
+    headline: "Now picture a 10-metre cube.",
+    body: "That\u2019s one metric ton of CO\u2082. Most people produce several of those each year without ever seeing them. Once you can picture it, you can start to reshape it.",
     source: "The Carbon Almanac",
     accent: "var(--mint)",
   },
   {
     num: "02",
-    headline: "One flight can change everything.",
-    body: "A single round-trip flight from San Francisco to London produces about as much CO\u2082 as an entire year of driving. One trip. One year. Same number.",
+    headline: "Some choices carry more weight than others.",
+    body: "A single round-trip flight from San Francisco to London produces about as much CO\u2082 as a full year of driving. Knowing which choices matter most is how you focus your energy where it counts.",
     source: "The Carbon Almanac",
     accent: "var(--cyan)",
   },
   {
     num: "03",
-    headline: "Your plate is a lever.",
-    body: "Livestock accounts for 61% of all food production emissions. Shifting even a few meals a week from beef to plants is one of the fastest levers any individual can pull.",
+    headline: "Your plate is one of your strongest levers.",
+    body: "Shifting even a few meals a week from beef to plants is one of the fastest ways any individual can make a measurable difference. Small changes, compounding weekly.",
     source: "The Carbon Almanac",
     accent: "var(--sky)",
   },
@@ -73,7 +73,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.country",
     prompt: "Where do you live?",
-    subtext: "This tells us how your electricity is made.",
+    subtext: "Every grid is different \u2014 this shapes your starting point.",
     options: [
       { value: "US", label: "United States" },
       { value: "UK", label: "United Kingdom" },
@@ -87,7 +87,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.car_ownership",
     prompt: "How do you get around?",
-    subtext: "Your daily commute shapes more of your footprint than you\u2019d think.",
+    subtext: "How you move is one of the places where small shifts add up fast.",
     options: [
       { value: "none", label: "No car \u2014 walk, bike, or transit" },
       { value: "shared", label: "I share a car or use one occasionally" },
@@ -101,7 +101,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "FLIGHT_QUESTION",
     questionKey: "flight.intent",
     prompt: "How much are you flying this year?",
-    subtext: "This one question can shift your whole picture.",
+    subtext: "This is one of the highest-leverage choices you make each year.",
     options: [
       { value: "none", label: "Not flying this year" },
       { value: "one_short", label: "One short trip" },
@@ -115,7 +115,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "FOOD_CHOICES",
     questionKey: "food.diet_type",
     prompt: "What does a typical week of eating look like?",
-    subtext: "No judgement. Just an honest picture.",
+    subtext: "Food is where individual choices make the fastest visible difference.",
     options: [
       { value: "heavy_meat", label: "Red meat several times a week" },
       { value: "meat", label: "Mostly chicken and pork" },
@@ -130,7 +130,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.heating_fuel",
     prompt: "What heats your home?",
-    subtext: "Heating is often the invisible half of a home footprint.",
+    subtext: "This is the part of your home most people never think to look at.",
     options: [
       { value: "electric", label: "Electricity or heat pump" },
       { value: "gas", label: "Natural gas" },
@@ -208,21 +208,21 @@ function generateInsight(
 ): string {
   const total =
     breakdown.home + breakdown.flights + breakdown.food + breakdown.digital;
-  if (total === 0) return "Your footprint is remarkably light.";
+  if (total === 0) return "You\u2019re starting from an incredibly strong position.";
 
   const flightPct = breakdown.flights / total;
   const homePct = breakdown.home / total;
   const foodPct = breakdown.food / total;
 
   if (flightPct > 0.45)
-    return "Your flights are quietly carrying most of your footprint. Everything else you do matters less than that one decision.";
+    return "Your biggest opportunity is in the air. One change to how you fly could move the needle more than everything else combined.";
   if (homePct > 0.45)
-    return "Your home is the biggest part of the picture. How you heat it and power it matters more than most people expect.";
+    return "Your home is where the biggest opportunity lives. Changes to how you heat and power it can have an outsized effect.";
   if (foodPct > 0.4)
-    return "What you eat is shaping your footprint more than you might think. A few shifts on your plate can move the needle faster than almost anything else.";
+    return "Your plate is your superpower here. A few shifts each week can move the needle faster than almost anything else you could try.";
   if (monthlyTCO2e < 0.3)
-    return "You\u2019re already lighter than most. The full picture will show exactly where the remaining weight sits.";
-  return "Your footprint is spread across a few areas. The full picture will show which ones are worth focusing on first.";
+    return "You\u2019re already well ahead of most people. The full picture will show you where to fine-tune next.";
+  return "Your footprint is spread across a few areas \u2014 which means you have multiple places where small changes can add up.";
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -298,11 +298,11 @@ export default function NarrativePage() {
   const currentQ = QUIZ_QUESTIONS[step];
   const trajectory = signal
     ? signal.score >= 70
-      ? "LIGHT"
+      ? "LEADING"
       : signal.score >= 40
-      ? "STEADY"
-      : "HEAVY"
-    : "STEADY";
+      ? "BUILDING"
+      : "EXPLORING"
+    : "BUILDING";
   const total = signal
     ? signal.breakdown.home +
       signal.breakdown.flights +
@@ -516,7 +516,10 @@ export default function NarrativePage() {
             </div>
             <div className="n-counter-label">tonnes of CO\u2082</div>
             <div className="n-counter-sub">
-              emitted globally since you opened this page
+              added to the atmosphere since you opened this page
+            </div>
+            <div className="n-counter-reframe">
+              Seeing the number is the first step to changing it.
             </div>
           </div>
           <div className="n-hero-credit">
@@ -565,13 +568,14 @@ export default function NarrativePage() {
           {quizPhase === "idle" && !quizComplete && (
             <div className="n-pivot-content" key="pivot-idle">
               <h2 className="n-pivot-headline">
-                You{"\u2019"}ve seen the numbers.
+                Now let{"\u2019"}s find
                 <br />
-                <span className="n-italic">Now let{"\u2019"}s find yours.</span>
+                <span className="n-italic">where your power is.</span>
               </h2>
               <p className="n-pivot-body">
-                Five questions. Two minutes. A first honest look at the choices
-                that shape your footprint.
+                Five questions. Two minutes. Discover which of your everyday
+                choices have the most leverage {"\u2014"} and where a small
+                shift could make the biggest difference.
               </p>
               <button className="n-btn n-btn-mint" onClick={handleStartQuiz}>
                 Find my signal
@@ -669,7 +673,7 @@ export default function NarrativePage() {
         <>
           <section className="n-signal n-reveal-on-scroll" ref={revealRef}>
             <div className="n-signal-inner">
-              <div className="n-signal-eyebrow">YOUR SIGNAL</div>
+              <div className="n-signal-eyebrow">YOUR STARTING POINT</div>
 
               {/* Score gauge */}
               <div className="n-gauge">
@@ -757,10 +761,10 @@ export default function NarrativePage() {
           >
             <div className="n-swap-inner">
               <h3 className="n-swap-headline">
-                What if you changed one thing?
+                One change. See what moves.
               </h3>
               <p className="n-swap-subtext">
-                Pick a swap. See how it moves the needle.
+                Pick something you{"\u2019"}d actually try. Watch the number shift.
               </p>
 
               <div className="n-swap-options">

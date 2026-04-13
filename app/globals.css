@@ -3064,6 +3064,16 @@ h1, h2, h3, h4 {
   margin-top: 0.5rem;
 }
 
+.n-counter-reframe {
+  font-family: "Newsreader", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  color: var(--ink-3);
+  margin-top: 1.25rem;
+  opacity: 0;
+  animation: n-fade-up 1s ease 1.5s forwards;
+}
+
 /* Hero credit */
 .n-hero-credit {
   font-family: "JetBrains Mono", monospace;
@@ -3448,19 +3458,19 @@ h1, h2, h3, h4 {
   letter-spacing: 2px;
 }
 
-.n-pill.light {
+.n-pill.leading {
   background: rgba(94, 234, 212, 0.15);
   color: var(--mint);
 }
 
-.n-pill.steady {
+.n-pill.building {
   background: rgba(253, 230, 138, 0.15);
   color: var(--glow-2);
 }
 
-.n-pill.heavy {
-  background: rgba(248, 113, 113, 0.15);
-  color: #f87171;
+.n-pill.exploring {
+  background: rgba(125, 211, 252, 0.15);
+  color: var(--sky);
 }
 
 /* TCO2e label */
