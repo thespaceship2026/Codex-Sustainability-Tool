@@ -178,7 +178,7 @@ export function RevealScreen({ result, onExplore }: Props) {
       <div className={`reveal-capture ${phase === "capture" ? "visible" : ""}`}>
         {captureStatus === "success" ? (
           <div className="reveal-capture-done">
-            <h3>You're on the list.</h3>
+            <h3>You&apos;re on the list.</h3>
             <p>
               Your first Orbit digest lands on Sunday. Your signal, one
               thing worth trying, and a short read we think is worth
@@ -197,7 +197,7 @@ export function RevealScreen({ result, onExplore }: Props) {
             <p>
               This is a first pass from five questions. The complete Orbit
               dashboard tracks four missions, shows where your footprint
-              actually lives, and updates weekly. We'll send your first
+              actually lives, and updates weekly. We&apos;ll send your first
               full report on Sunday.
             </p>
             <form className="reveal-form" onSubmit={handleCapture} noValidate>
@@ -258,7 +258,7 @@ export function RevealScreen({ result, onExplore }: Props) {
         <p>
           One week at The Hun School of Princeton. Systems thinking,
           planetary boundaries, and the kind of learning that changes how
-          you see every decision you'll make this year. Grades 9 to 12.
+          you see every decision you&apos;ll make this year. Grades 9 to 12.
           Summer 2026.
         </p>
         <a
