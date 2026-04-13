@@ -1,18 +1,19 @@
 "use client";
 
-// Orbit v2 — NarrativePage
+// Orbit v2 \u2014 The Ripple Effect
 //
-// The single-page scrolling narrative experience. Replaces the old
-// dashboard-first approach with a story-driven page:
+// A single-page experience that starts with one small change and shows
+// it rippling outward: you \u2192 10 people \u2192 1,000 \u2192 a city.
 //
-//   1. Hero: live global CO₂ counter (ticking in real time)
-//   2. Three Carbon Almanac facts (scroll-reveal)
-//   3. Pivot + inline quiz (5 questions with fact interludes)
-//   4. Signal reveal (score, breakdown, swap lever)
-//   5. Close (Almanac quote, Thrive Lab bridge, email capture)
+// Phases:
+//   1. Pick \u2014 choose one small change
+//   2. Ripple \u2014 watch it expand with Almanac facts at each level
+//   3. Transition \u2014 summary + \u201CFind my ripple\u201D CTA
+//   4. Quiz \u2014 5 fast questions (no interludes)
+//   5. Reveal \u2014 dominant category, not a score
+//   6. Close \u2014 quote, Thrive Lab bridge, email capture
 //
-// Target audience: 18–25 year olds discovering their carbon footprint
-// for the first time. Designed to create a "wow" in the first 5 seconds.
+// Fun and playful. No shame or guilt. On-brand for The Spaceship Academy.
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
@@ -20,42 +21,173 @@ import {
   type AnswerInput,
   type MissionStateInput,
 } from "@/lib/orbit/signal";
-import { REVEAL_QUOTES, pickFact } from "@/lib/orbit/almanac-facts";
+import { REVEAL_QUOTES } from "@/lib/orbit/almanac-facts";
 
-// ════════════════════════════════════════════════════════════════════════════
-// Constants
-// ════════════════════════════════════════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// Data
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-// ~36.8 Gt CO₂/year from fossil fuels (2022) → ~1,167 tonnes per second
-const CO2_TONNES_PER_SECOND = 1167;
+type RippleLevel = {
+  scale: string;
+  people: string;
+  fact: string;
+  factSource: string;
+};
 
-// Three curated Almanac facts for the scroll narrative
-// Arc: AWARENESS → DISCOVERY → AGENCY
-const SCROLL_FACTS = [
+type RippleChoice = {
+  id: string;
+  icon: string;
+  label: string;
+  tagline: string;
+  monthlySavingsKg: number;
+  color: string;
+  levels: RippleLevel[];
+};
+
+const RIPPLE_CHOICES: RippleChoice[] = [
   {
-    num: "01",
-    headline: "Now picture a 10-metre cube.",
-    body: "That\u2019s one metric ton of CO\u2082. Most people produce several of those each year without ever seeing them. Once you can picture it, you can start to reshape it.",
-    source: "The Carbon Almanac",
-    accent: "var(--mint)",
+    id: "bike",
+    icon: "\uD83D\uDEB2",
+    label: "Bike one commute a week",
+    tagline: "Swap the car for pedals, just once a week.",
+    monthlySavingsKg: 24,
+    color: "var(--mint)",
+    levels: [
+      {
+        scale: "YOU",
+        people: "1",
+        fact: "One car-free commute day per week saves roughly 24 kg of CO\u2082 a month. That\u2019s almost 300 kg a year\u2014about the weight of a grand piano, vanished.",
+        factSource: "The Carbon Almanac, Biggest Individual Actions",
+      },
+      {
+        scale: "YOUR CIRCLE",
+        people: "10",
+        fact: "When ten people bike one day a week, they save about 3 tonnes of CO\u2082 a year. Researchers at Imperial College London found that going car-free is one of the top three personal climate actions.",
+        factSource: "The Carbon Almanac, Transport",
+      },
+      {
+        scale: "YOUR TOWN",
+        people: "1,000",
+        fact: "A thousand commuters biking once a week removes 288 tonnes of CO\u2082 a year\u2014equivalent to taking 62 cars off the road permanently.",
+        factSource: "The Carbon Almanac, Transport",
+      },
+      {
+        scale: "YOUR CITY",
+        people: "500,000",
+        fact: "Half a million people making this one swap would eliminate 144,000 tonnes of CO\u2082 annually. That\u2019s more than the yearly emissions of some small countries.",
+        factSource: "The Carbon Almanac, Transport",
+      },
+    ],
   },
   {
-    num: "02",
-    headline: "Some choices carry more weight than others.",
-    body: "A single round-trip flight from San Francisco to London produces about as much CO\u2082 as a full year of driving. Knowing which choices matter most is how you focus your energy where it counts.",
-    source: "The Carbon Almanac",
-    accent: "var(--cyan)",
+    id: "meals",
+    icon: "\uD83C\uDF31",
+    label: "Two plant meals a week",
+    tagline: "Swap beef for plants, just two meals a week.",
+    monthlySavingsKg: 45,
+    color: "var(--cyan)",
+    levels: [
+      {
+        scale: "YOU",
+        people: "1",
+        fact: "Producing one pound of beef generates about 30 pounds of CO\u2082. Swapping two beef meals a week for plants saves roughly 45 kg of CO\u2082 a month.",
+        factSource: "The Carbon Almanac, Food & Agriculture",
+      },
+      {
+        scale: "YOUR CIRCLE",
+        people: "10",
+        fact: "Ten people swapping two meals a week saves over 5 tonnes of CO\u2082 a year. Livestock accounts for 61% of all food production emissions\u2014small meal shifts are the fastest lever any person can pull.",
+        factSource: "The Carbon Almanac, Food & Agriculture",
+      },
+      {
+        scale: "YOUR TOWN",
+        people: "1,000",
+        fact: "A thousand people making this swap keeps 540 tonnes of CO\u2082 out of the atmosphere each year. That\u2019s like powering every home in a small village with clean energy.",
+        factSource: "The Carbon Almanac, Food & Agriculture",
+      },
+      {
+        scale: "YOUR CITY",
+        people: "500,000",
+        fact: "Half a million people choosing plants twice a week would prevent 270,000 tonnes of CO\u2082 annually. One plate at a time, multiplied half a million times.",
+        factSource: "The Carbon Almanac, Food & Agriculture",
+      },
+    ],
   },
   {
-    num: "03",
-    headline: "Your plate is one of your strongest levers.",
-    body: "Shifting even a few meals a week from beef to plants is one of the fastest ways any individual can make a measurable difference. Small changes, compounding weekly.",
-    source: "The Carbon Almanac",
-    accent: "var(--sky)",
+    id: "flight",
+    icon: "\u2708\uFE0F",
+    label: "Skip one flight this year",
+    tagline: "Stay grounded for one trip. Take the train.",
+    monthlySavingsKg: 96,
+    color: "var(--sky)",
+    levels: [
+      {
+        scale: "YOU",
+        people: "1",
+        fact: "A single round-trip flight from San Francisco to London produces about as much CO\u2082 as a full year of driving. Skipping one flight saves roughly 1,150 kg\u2014the single biggest lever most people have.",
+        factSource: "The Carbon Almanac, Climate Change for Rookies",
+      },
+      {
+        scale: "YOUR CIRCLE",
+        people: "10",
+        fact: "Ten people skipping one long flight each saves 11.5 tonnes of CO\u2082. In Sweden, \u201Cflygskam\u201D (flight shame) became so mainstream that domestic air travel dropped 9% in a single year.",
+        factSource: "The Carbon Almanac, Travel & Transport",
+      },
+      {
+        scale: "YOUR TOWN",
+        people: "1,000",
+        fact: "A thousand people choosing the train over one flight saves 1,150 tonnes of CO\u2082. That\u2019s the equivalent of a small forest absorbing carbon for an entire year.",
+        factSource: "The Carbon Almanac, Travel & Transport",
+      },
+      {
+        scale: "YOUR CITY",
+        people: "500,000",
+        fact: "Half a million people skipping one flight each would prevent 575,000 tonnes of CO\u2082. That\u2019s a number governments spend billions trying to achieve.",
+        factSource: "The Carbon Almanac, Travel & Transport",
+      },
+    ],
+  },
+  {
+    id: "unplug",
+    icon: "\uD83D\uDD0C",
+    label: "Unplug what you\u2019re not using",
+    tagline: "Kill standby power. It adds up more than you\u2019d think.",
+    monthlySavingsKg: 15,
+    color: "var(--glow)",
+    levels: [
+      {
+        scale: "YOU",
+        people: "1",
+        fact: "Plug loads\u2014every device, charger, and appliance left on standby\u2014account for around 50% of a building\u2019s total energy use. Unplugging saves roughly 15 kg of CO\u2082 a month.",
+        factSource: "The Carbon Almanac, Built Environment",
+      },
+      {
+        scale: "YOUR CIRCLE",
+        people: "10",
+        fact: "Ten people unplugging idle devices saves nearly 2 tonnes of CO\u2082 a year. Gaming consoles alone can use 150\u2013216 Wh per hour of play\u2014and they keep drawing power when you walk away.",
+        factSource: "The Carbon Almanac, Energy at Home",
+      },
+      {
+        scale: "YOUR TOWN",
+        people: "1,000",
+        fact: "A thousand households killing standby power removes 180 tonnes of CO\u2082 annually. The stuff you forgot was on is quietly adding up, everywhere.",
+        factSource: "The Carbon Almanac, Built Environment",
+      },
+      {
+        scale: "YOUR CITY",
+        people: "500,000",
+        fact: "Half a million households unplugging would save 90,000 tonnes of CO\u2082 a year. All from the things nobody even noticed were running.",
+        factSource: "The Carbon Almanac, Built Environment",
+      },
+    ],
   },
 ];
 
-// ── Quiz questions ──────────────────────────────────────────────────────────
+// Ring colors per level
+const RING_COLORS = ["var(--mint)", "var(--cyan)", "var(--sky)", "var(--glow)"];
+const RING_LABELS = ["YOU", "10 PEOPLE", "1,000 PEOPLE", "A CITY"];
+
+// \u2500\u2500 Quiz questions (same 5, reframed for ripple) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 type QuizOption = { value: string; label: string };
 type QuizQuestion = {
@@ -72,14 +204,14 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 1,
     missionKey: "HOME_BASELINE",
     questionKey: "home.country",
-    prompt: "Where do you live?",
-    subtext: "Every grid is different \u2014 this shapes your starting point.",
+    prompt: "Where in the world are you?",
+    subtext: "Your energy grid shapes your starting ripple.",
     options: [
-      { value: "US", label: "United States" },
-      { value: "UK", label: "United Kingdom" },
-      { value: "FR", label: "France" },
-      { value: "DE", label: "Germany" },
-      { value: "OTHER", label: "Somewhere else" },
+      { value: "US", label: "\uD83C\uDDFA\uD83C\uDDF8 United States" },
+      { value: "UK", label: "\uD83C\uDDEC\uD83C\uDDE7 United Kingdom" },
+      { value: "FR", label: "\uD83C\uDDEB\uD83C\uDDF7 France" },
+      { value: "DE", label: "\uD83C\uDDE9\uD83C\uDDEA Germany" },
+      { value: "OTHER", label: "\uD83C\uDF0D Somewhere else" },
     ],
   },
   {
@@ -87,40 +219,40 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.car_ownership",
     prompt: "How do you get around?",
-    subtext: "How you move is one of the places where small shifts add up fast.",
+    subtext: "Movement is one of your biggest ripple-makers.",
     options: [
-      { value: "none", label: "No car \u2014 walk, bike, or transit" },
-      { value: "shared", label: "I share a car or use one occasionally" },
-      { value: "petrol", label: "I drive a petrol or diesel car" },
-      { value: "hybrid", label: "I drive a hybrid" },
-      { value: "ev", label: "I drive an electric car" },
+      { value: "none", label: "Walk, bike, or transit" },
+      { value: "shared", label: "Car-share or occasional use" },
+      { value: "petrol", label: "Petrol or diesel car" },
+      { value: "hybrid", label: "Hybrid" },
+      { value: "ev", label: "Electric car" },
     ],
   },
   {
     id: 3,
     missionKey: "FLIGHT_QUESTION",
     questionKey: "flight.intent",
-    prompt: "How much are you flying this year?",
-    subtext: "This is one of the highest-leverage choices you make each year.",
+    prompt: "Flying this year?",
+    subtext: "This is the single highest-leverage choice most people make.",
     options: [
-      { value: "none", label: "Not flying this year" },
+      { value: "none", label: "Staying grounded" },
       { value: "one_short", label: "One short trip" },
       { value: "one_long", label: "One longer trip" },
-      { value: "two_plus", label: "Two or more trips" },
-      { value: "frequent", label: "I fly most months" },
+      { value: "two_plus", label: "A few trips" },
+      { value: "frequent", label: "Flying most months" },
     ],
   },
   {
     id: 4,
     missionKey: "FOOD_CHOICES",
     questionKey: "food.diet_type",
-    prompt: "What does a typical week of eating look like?",
-    subtext: "Food is where individual choices make the fastest visible difference.",
+    prompt: "What\u2019s on your plate?",
+    subtext: "Your plate is where individual change compounds fastest.",
     options: [
-      { value: "heavy_meat", label: "Red meat several times a week" },
+      { value: "heavy_meat", label: "Lots of red meat" },
       { value: "meat", label: "Mostly chicken and pork" },
-      { value: "flexitarian", label: "Meat a few days a week" },
-      { value: "pescatarian", label: "Fish but no meat" },
+      { value: "flexitarian", label: "A bit of everything" },
+      { value: "pescatarian", label: "Fish, no meat" },
       { value: "vegetarian", label: "Vegetarian" },
       { value: "vegan", label: "Fully plant-based" },
     ],
@@ -130,7 +262,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.heating_fuel",
     prompt: "What heats your home?",
-    subtext: "This is the part of your home most people never think to look at.",
+    subtext: "The invisible half of most home energy use.",
     options: [
       { value: "electric", label: "Electricity or heat pump" },
       { value: "gas", label: "Natural gas" },
@@ -141,8 +273,38 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
 ];
 
-// ── Swap options for the reveal ─────────────────────────────────────────────
+// Category labels and icons for reveal
+const CATEGORY_REVEAL: Record<
+  string,
+  { emoji: string; label: string; headline: string; body: string }
+> = {
+  home: {
+    emoji: "\uD83C\uDFE0",
+    label: "YOUR HOME",
+    headline: "Your home is your biggest ripple-maker.",
+    body: "Changes to how you heat and power your space have an outsized effect. A heat pump alone can cut your home\u2019s footprint in half.",
+  },
+  flights: {
+    emoji: "\u2708\uFE0F",
+    label: "YOUR FLIGHTS",
+    headline: "The sky is where your biggest ripple lives.",
+    body: "One fewer flight can move the needle more than everything else combined. When you stay grounded, the numbers shift fast.",
+  },
+  food: {
+    emoji: "\uD83C\uDF31",
+    label: "YOUR PLATE",
+    headline: "Your plate is your superpower.",
+    body: "A few shifts each week can move the needle faster than almost anything else. Small choices, compounding daily.",
+  },
+  digital: {
+    emoji: "\uD83D\uDD0C",
+    label: "YOUR DEVICES",
+    headline: "Your digital life is the quiet lever.",
+    body: "Streaming, cloud storage, always-on devices\u2014it adds up. The good news? Small unplugs compound into big savings.",
+  },
+};
 
+// Swap options for reveal section
 type SwapOption = {
   id: string;
   label: string;
@@ -156,8 +318,7 @@ const SWAP_OPTIONS: SwapOption[] = [
   {
     id: "flight",
     label: "Skip one flight",
-    description:
-      "One fewer round-trip this year saves the equivalent of months of driving.",
+    description: "One fewer round-trip this year.",
     savingsKg: 230,
     relevantTo: ["one_short", "one_long", "two_plus", "frequent"],
     icon: "\u2708\uFE0F",
@@ -165,17 +326,15 @@ const SWAP_OPTIONS: SwapOption[] = [
   {
     id: "meat",
     label: "Two plant days a week",
-    description:
-      "Swap beef for plants just two days. That\u2019s 30 fewer pounds of CO\u2082 each time.",
+    description: "Swap beef for plants just two days.",
     savingsKg: 45,
     relevantTo: ["heavy_meat", "meat", "flexitarian"],
     icon: "\uD83C\uDF31",
   },
   {
     id: "transport",
-    label: "Commute without driving",
-    description:
-      "Bike, bus, or walk one day a week. A small shift in how you move changes the math.",
+    label: "Bike one commute",
+    description: "Pedals instead of petrol, once a week.",
     savingsKg: 60,
     relevantTo: ["petrol", "shared"],
     icon: "\uD83D\uDEB2",
@@ -183,100 +342,83 @@ const SWAP_OPTIONS: SwapOption[] = [
   {
     id: "heat",
     label: "Switch to a heat pump",
-    description:
-      "Heat pumps use a fraction of the energy that gas or oil furnaces do.",
+    description: "A fraction of the energy of gas or oil.",
     savingsKg: 80,
     relevantTo: ["gas", "oil"],
     icon: "\uD83C\uDFE0",
   },
   {
     id: "digital",
-    label: "Unplug what you\u2019re not using",
-    description:
-      "Standby power adds up. Gaming consoles alone can use 150\u2013216 Wh per hour of play.",
+    label: "Unplug idle devices",
+    description: "Kill standby power at home.",
     savingsKg: 15,
     relevantTo: ["US", "UK", "FR", "DE", "OTHER"],
     icon: "\uD83D\uDD0C",
   },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function generateInsight(
-  breakdown: { home: number; flights: number; food: number; digital: number },
-  monthlyTCO2e: number
-): string {
-  const total =
-    breakdown.home + breakdown.flights + breakdown.food + breakdown.digital;
-  if (total === 0) return "You\u2019re starting from an incredibly strong position.";
-
-  const flightPct = breakdown.flights / total;
-  const homePct = breakdown.home / total;
-  const foodPct = breakdown.food / total;
-
-  if (flightPct > 0.45)
-    return "Your biggest opportunity is in the air. One change to how you fly could move the needle more than everything else combined.";
-  if (homePct > 0.45)
-    return "Your home is where the biggest opportunity lives. Changes to how you heat and power it can have an outsized effect.";
-  if (foodPct > 0.4)
-    return "Your plate is your superpower here. A few shifts each week can move the needle faster than almost anything else you could try.";
-  if (monthlyTCO2e < 0.3)
-    return "You\u2019re already well ahead of most people. The full picture will show you where to fine-tune next.";
-  return "Your footprint is spread across a few areas \u2014 which means you have multiple places where small changes can add up.";
-}
-
-// ════════════════════════════════════════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // Component
-// ════════════════════════════════════════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+type Phase = "pick" | "ripple" | "transition" | "quiz" | "reveal";
 
 export default function NarrativePage() {
-  // ── CO₂ counter ────────────────────────────────────────────────────────
-  const [co2, setCo2] = useState(0);
+  // \u2500\u2500 Phase state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  const [phase, setPhase] = useState<Phase>("pick");
+  const [selectedChoice, setSelectedChoice] = useState<RippleChoice | null>(null);
 
-  // ── Quiz state ─────────────────────────────────────────────────────────
-  const [quizPhase, setQuizPhase] = useState<"idle" | "question" | "fact">(
-    "idle"
-  );
-  const [step, setStep] = useState(0);
+  // \u2500\u2500 Ripple animation state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  const [activeLevel, setActiveLevel] = useState(-1);
+  const [displayNumber, setDisplayNumber] = useState(0);
+  const [rippleComplete, setRippleComplete] = useState(false);
+  const levelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const numberTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // \u2500\u2500 Quiz state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  const [quizStep, setQuizStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [lastAnswer, setLastAnswer] = useState("");
-  const [animating, setAnimating] = useState(false);
 
-  // ── Reveal state ───────────────────────────────────────────────────────
-  const [quizComplete, setQuizComplete] = useState(false);
+  // \u2500\u2500 Reveal state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const [signal, setSignal] = useState<{
-    score: number;
     monthlyTCO2e: number;
-    breakdown: {
-      home: number;
-      flights: number;
-      food: number;
-      digital: number;
-    };
-    insight: string;
+    breakdown: { home: number; flights: number; food: number; digital: number };
   } | null>(null);
-  const [displayScore, setDisplayScore] = useState(0);
-  const [revealPhase, setRevealPhase] = useState<
-    "counting" | "insight" | "swap" | "done"
-  >("counting");
   const [selectedSwap, setSelectedSwap] = useState<string | null>(null);
+  const [revealReady, setRevealReady] = useState(false);
 
-  // ── Email capture ──────────────────────────────────────────────────────
+  // \u2500\u2500 Email capture \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(true);
   const [captureStatus, setCaptureStatus] = useState<
     "idle" | "submitting" | "success" | "error"
   >("idle");
 
-  // ── Refs ───────────────────────────────────────────────────────────────
+  // \u2500\u2500 Refs \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  const rippleRef = useRef<HTMLDivElement>(null);
   const quizRef = useRef<HTMLDivElement>(null);
   const revealRef = useRef<HTMLDivElement>(null);
-  const scoreTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pageTopRef = useRef<HTMLDivElement>(null);
 
-  // ── Computed values ────────────────────────────────────────────────────
-  const quote = signal
-    ? REVEAL_QUOTES[signal.score % REVEAL_QUOTES.length]
-    : REVEAL_QUOTES[0];
+  // \u2500\u2500 Computed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  const dominantCategory = useMemo(() => {
+    if (!signal) return null;
+    const b = signal.breakdown;
+    const entries = [
+      { key: "home", val: b.home },
+      { key: "flights", val: b.flights },
+      { key: "food", val: b.food },
+      { key: "digital", val: b.digital },
+    ];
+    entries.sort((a, c) => c.val - a.val);
+    return entries[0].key;
+  }, [signal]);
+
+  const revealData = dominantCategory
+    ? CATEGORY_REVEAL[dominantCategory]
+    : null;
+
+  const quote = REVEAL_QUOTES[1]; // Jane Goodall
 
   const relevantSwaps = useMemo(() => {
     const vals = Object.values(answers);
@@ -291,66 +433,86 @@ export default function NarrativePage() {
     return sw ? sw.savingsKg / 1000 : 0;
   }, [selectedSwap]);
 
-  const adjustedMonthly = signal
-    ? Math.max(0, signal.monthlyTCO2e - swapSavingsMonthly)
-    : 0;
+  // People target numbers for animation
+  const PEOPLE_TARGETS = [1, 10, 1000, 500000];
 
-  const currentQ = QUIZ_QUESTIONS[step];
-  const trajectory = signal
-    ? signal.score >= 70
-      ? "LEADING"
-      : signal.score >= 40
-      ? "BUILDING"
-      : "EXPLORING"
-    : "BUILDING";
-  const total = signal
-    ? signal.breakdown.home +
-      signal.breakdown.flights +
-      signal.breakdown.food +
-      signal.breakdown.digital
-    : 0;
-  const bars = signal
-    ? [
-        {
-          key: "home",
-          label: "Home",
-          value: signal.breakdown.home,
-          color: "var(--mint)",
-        },
-        {
-          key: "flights",
-          label: "Flights",
-          value: signal.breakdown.flights,
-          color: "var(--cyan)",
-        },
-        {
-          key: "food",
-          label: "Food",
-          value: signal.breakdown.food,
-          color: "var(--sky)",
-        },
-        {
-          key: "digital",
-          label: "Digital",
-          value: signal.breakdown.digital,
-          color: "var(--ink-4)",
-        },
-      ].filter((b) => b.value > 0)
-    : [];
+  // \u2500\u2500 Ripple animation engine \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-  // ── Effects ────────────────────────────────────────────────────────────
+  const startRipple = useCallback(
+    (choice: RippleChoice) => {
+      setSelectedChoice(choice);
+      setPhase("ripple");
+      setActiveLevel(-1);
+      setDisplayNumber(0);
+      setRippleComplete(false);
 
-  // CO₂ counter — ticks from 0 on page load
-  useEffect(() => {
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = (Date.now() - start) / 1000;
-      setCo2(Math.round(elapsed * CO2_TONNES_PER_SECOND));
-    }, 50);
-    return () => clearInterval(timer);
+      // Scroll to ripple section after brief delay
+      setTimeout(() => {
+        rippleRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 150);
+
+      // Start the level sequence
+      let currentLevel = 0;
+
+      const advanceLevel = () => {
+        if (currentLevel >= 4) {
+          setRippleComplete(true);
+          return;
+        }
+
+        setActiveLevel(currentLevel);
+
+        // Animate the number
+        const target = PEOPLE_TARGETS[currentLevel];
+        const duration = currentLevel === 0 ? 400 : 1200;
+        const start = Date.now();
+        const startVal = currentLevel === 0 ? 0 : PEOPLE_TARGETS[currentLevel - 1];
+
+        if (numberTimerRef.current) clearInterval(numberTimerRef.current);
+
+        numberTimerRef.current = setInterval(() => {
+          const elapsed = Date.now() - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(startVal + (target - startVal) * eased);
+          setDisplayNumber(current);
+
+          if (progress >= 1) {
+            if (numberTimerRef.current) clearInterval(numberTimerRef.current);
+          }
+        }, 16);
+
+        currentLevel++;
+        levelTimerRef.current = setTimeout(advanceLevel, 2800);
+      };
+
+      // Start after a small delay for the phase transition
+      levelTimerRef.current = setTimeout(advanceLevel, 600);
+    },
+    []
+  );
+
+  // Skip to end of ripple animation
+  const skipRipple = useCallback(() => {
+    if (levelTimerRef.current) clearTimeout(levelTimerRef.current);
+    if (numberTimerRef.current) clearInterval(numberTimerRef.current);
+    setActiveLevel(3);
+    setDisplayNumber(500000);
+    setRippleComplete(true);
   }, []);
 
-  // Scroll-reveal observer — adds .n-visible to sections on scroll
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (levelTimerRef.current) clearTimeout(levelTimerRef.current);
+      if (numberTimerRef.current) clearInterval(numberTimerRef.current);
+    };
+  }, []);
+
+  // \u2500\u2500 Scroll reveal observer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -369,102 +531,68 @@ export default function NarrativePage() {
       .forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, [quizComplete]); // re-observe when reveal sections mount
+  }, [phase, revealReady]);
 
-  // Score counter animation
-  useEffect(() => {
-    if (!quizComplete || !signal) return;
+  // \u2500\u2500 Handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-    const duration = 2000;
-    const start = Date.now();
-
-    scoreTimerRef.current = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      setDisplayScore(Math.round(eased * signal.score));
-
-      if (progress >= 1) {
-        if (scoreTimerRef.current) clearInterval(scoreTimerRef.current);
-        setTimeout(() => setRevealPhase("insight"), 400);
-        setTimeout(() => setRevealPhase("swap"), 1600);
-        setTimeout(() => setRevealPhase("done"), 3000);
-      }
-    }, 16);
-
-    return () => {
-      if (scoreTimerRef.current) clearInterval(scoreTimerRef.current);
-    };
-  }, [quizComplete, signal]);
-
-  // ── Handlers ───────────────────────────────────────────────────────────
+  const handleTransition = useCallback(() => {
+    setPhase("transition");
+    setTimeout(() => {
+      pageTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, []);
 
   const handleStartQuiz = useCallback(() => {
-    setQuizPhase("question");
-    setStep(0);
+    setPhase("quiz");
+    setQuizStep(0);
     setTimeout(() => {
       quizRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 100);
   }, []);
 
-  const handleSelect = useCallback(
+  const handleQuizAnswer = useCallback(
     (value: string) => {
-      if (animating) return;
-      const q = QUIZ_QUESTIONS[step];
+      const q = QUIZ_QUESTIONS[quizStep];
       const newAnswers = { ...answers, [q.questionKey]: value };
       setAnswers(newAnswers);
-      setLastAnswer(value);
-      setAnimating(true);
 
+      // Auto-advance after short delay
       setTimeout(() => {
-        setQuizPhase("fact");
-        setAnimating(false);
-      }, 350);
+        if (quizStep < QUIZ_QUESTIONS.length - 1) {
+          setQuizStep(quizStep + 1);
+        } else {
+          // Compute signal
+          const answerInputs: AnswerInput[] = QUIZ_QUESTIONS.map((qq) => ({
+            missionKey: qq.missionKey,
+            questionKey: qq.questionKey,
+            valueStr: newAnswers[qq.questionKey] ?? null,
+            valueNum: null,
+            valueBool: null,
+          }));
+          const missions: MissionStateInput[] = [
+            { key: "HOME_BASELINE", status: "PARTIAL" },
+            { key: "FLIGHT_QUESTION", status: "PARTIAL" },
+            { key: "FOOD_CHOICES", status: "PARTIAL" },
+            { key: "DIGITAL_CARBON", status: "LOCKED" },
+          ];
+          const result = calculateSignal({ answers: answerInputs, missions });
+          setSignal({
+            monthlyTCO2e: result.monthlyTCO2e,
+            breakdown: result.breakdown,
+          });
+          setPhase("reveal");
+          setTimeout(() => {
+            setRevealReady(true);
+            revealRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 300);
+        }
+      }, 400);
     },
-    [step, answers, animating]
+    [quizStep, answers]
   );
-
-  const handleFactContinue = useCallback(() => {
-    if (step < QUIZ_QUESTIONS.length - 1) {
-      setStep(step + 1);
-      setQuizPhase("question");
-    } else {
-      // Final question — compute signal
-      const answerInputs: AnswerInput[] = QUIZ_QUESTIONS.map((q) => ({
-        missionKey: q.missionKey,
-        questionKey: q.questionKey,
-        valueStr: answers[q.questionKey] ?? null,
-        valueNum: null,
-        valueBool: null,
-      }));
-
-      const missions: MissionStateInput[] = [
-        { key: "HOME_BASELINE", status: "PARTIAL" },
-        { key: "FLIGHT_QUESTION", status: "PARTIAL" },
-        { key: "FOOD_CHOICES", status: "PARTIAL" },
-        { key: "DIGITAL_CARBON", status: "LOCKED" },
-      ];
-
-      const result = calculateSignal({ answers: answerInputs, missions });
-      const insight = generateInsight(result.breakdown, result.monthlyTCO2e);
-
-      setSignal({
-        score: result.score,
-        monthlyTCO2e: result.monthlyTCO2e,
-        breakdown: result.breakdown,
-        insight,
-      });
-      setQuizComplete(true);
-      setQuizPhase("idle");
-
-      setTimeout(() => {
-        revealRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 300);
-    }
-  }, [step, answers]);
 
   async function handleCapture(e: React.FormEvent) {
     e.preventDefault();
@@ -479,11 +607,11 @@ export default function NarrativePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: trimmed,
-          source: "orbit_narrative",
-          signalAtCapture: signal?.score,
+          source: "orbit_ripple",
           monthlyTCO2e: signal?.monthlyTCO2e,
           consent,
           selectedSwap,
+          rippleChoice: selectedChoice?.id,
         }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -493,285 +621,339 @@ export default function NarrativePage() {
     }
   }
 
-  // Fact for quiz interludes
-  const currentFact =
-    quizPhase === "fact" ? pickFact(currentQ.questionKey, lastAnswer) : null;
+  const currentQ = QUIZ_QUESTIONS[quizStep];
 
-  // ════════════════════════════════════════════════════════════════════════
+  // Format number with commas
+  const formatNum = (n: number) => n.toLocaleString("en-US");
+
+  // Calculate ripple savings for display
+  const rippleSavings = selectedChoice
+    ? {
+        you: `${selectedChoice.monthlySavingsKg * 12} kg`,
+        ten: `${((selectedChoice.monthlySavingsKg * 12 * 10) / 1000).toFixed(1)} tonnes`,
+        thousand: `${Math.round(
+          (selectedChoice.monthlySavingsKg * 12 * 1000) / 1000
+        )} tonnes`,
+        city: `${formatNum(
+          Math.round((selectedChoice.monthlySavingsKg * 12 * 500000) / 1000)
+        )} tonnes`,
+      }
+    : null;
+
+  // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
   // Render
-  // ════════════════════════════════════════════════════════════════════════
+  // \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
   return (
-    <div className="n-page">
-      {/* ──────────────────────────────────────────────────── HERO */}
-      <section className="n-hero">
-        <div className="n-hero-inner">
-          <div className="n-hero-live">
-            <span className="n-live-dot" />
-            <span>LIVE</span>
-          </div>
-          <div className="n-counter-wrap">
-            <div className="n-counter" aria-label="Global CO2 emissions counter">
-              {co2.toLocaleString("en-US")}
+    <div className="n-page" ref={pageTopRef}>
+      {/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PHASE 1: PICK */}
+      {phase === "pick" && (
+        <section className="r-pick">
+          <div className="r-pick-inner">
+            <div className="r-pick-badge">
+              <span className="r-pick-dot" />
+              THE RIPPLE EFFECT
             </div>
-            <div className="n-counter-label">tonnes of CO\u2082</div>
-            <div className="n-counter-sub">
-              added to the atmosphere since you opened this page
-            </div>
-            <div className="n-counter-reframe">
-              Seeing the number is the first step to changing it.
-            </div>
-          </div>
-          <div className="n-hero-credit">
-            Data: <strong>The Carbon Almanac</strong> &middot; Penguin Random
-            House, 2022
-          </div>
-        </div>
-        <div className="n-scroll-hint" aria-hidden="true">
-          <span>SCROLL</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 5v14M5 12l7 7 7-7"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      </section>
+            <h1 className="r-pick-headline">
+              One small change.
+              <br />
+              <span className="n-italic">Watch it ripple.</span>
+            </h1>
+            <p className="r-pick-sub">
+              Pick one thing you{"\u2019"}d actually try. We{"\u2019"}ll show you
+              what happens when it spreads.
+            </p>
 
-      {/* ──────────────────────────────────────────── SCROLL FACTS */}
-      {SCROLL_FACTS.map((fact) => (
-        <section
-          key={fact.num}
-          className="n-fact n-reveal-on-scroll"
-          style={{ "--fact-accent": fact.accent } as React.CSSProperties}
-        >
-          <div className="n-fact-inner">
-            <span className="n-fact-num">{fact.num}</span>
-            <h2 className="n-fact-headline">{fact.headline}</h2>
-            <p className="n-fact-body">{fact.body}</p>
-            <div className="n-fact-credit">
-              <span className="n-fact-book">
-                {"\uD83D\uDCD6"} {fact.source}
-              </span>
+            <div className="r-choices">
+              {RIPPLE_CHOICES.map((choice) => (
+                <button
+                  key={choice.id}
+                  className="r-choice-card"
+                  style={
+                    { "--card-accent": choice.color } as React.CSSProperties
+                  }
+                  onClick={() => startRipple(choice)}
+                >
+                  <span className="r-choice-icon">{choice.icon}</span>
+                  <span className="r-choice-label">{choice.label}</span>
+                  <span className="r-choice-tagline">{choice.tagline}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="r-pick-credit">
+              Data: <strong>The Carbon Almanac</strong> &middot; Penguin Random
+              House, 2022
             </div>
           </div>
         </section>
-      ))}
+      )}
 
-      {/* ──────────────────────────────────────── PIVOT + QUIZ */}
-      <section className="n-pivot n-reveal-on-scroll" ref={quizRef}>
-        <div className="n-pivot-inner">
-          {/* Idle — invitation to start */}
-          {quizPhase === "idle" && !quizComplete && (
-            <div className="n-pivot-content" key="pivot-idle">
-              <h2 className="n-pivot-headline">
-                Now let{"\u2019"}s find
-                <br />
-                <span className="n-italic">where your power is.</span>
-              </h2>
-              <p className="n-pivot-body">
-                Five questions. Two minutes. Discover which of your everyday
-                choices have the most leverage {"\u2014"} and where a small
-                shift could make the biggest difference.
-              </p>
-              <button className="n-btn n-btn-mint" onClick={handleStartQuiz}>
-                Find my signal
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 12h14M13 5l7 7-7 7"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+      {/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PHASE 2: RIPPLE */}
+      {phase === "ripple" && selectedChoice && (
+        <section className="r-ripple" ref={rippleRef}>
+          <div className="r-ripple-inner">
+            {/* Concentric ring visualization */}
+            <div className="r-rings-container">
+              <div className="r-rings">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`r-ring r-ring-${i} ${
+                      activeLevel >= i ? "active" : ""
+                    }`}
+                    style={
+                      {
+                        "--ring-color": RING_COLORS[i],
+                        "--ring-delay": `${i * 0.15}s`,
+                      } as React.CSSProperties
+                    }
                   />
-                </svg>
-              </button>
-            </div>
-          )}
-
-          {/* Question phase */}
-          {quizPhase === "question" && currentQ && (
-            <div className="n-quiz-card" key={`q-${currentQ.id}`}>
-              <div className="n-quiz-step">
-                {step + 1} / {QUIZ_QUESTIONS.length}
+                ))}
+                {/* Center icon */}
+                <div className={`r-center-icon ${activeLevel >= 0 ? "active" : ""}`}>
+                  {selectedChoice.icon}
+                </div>
               </div>
-              <h2 className="n-quiz-prompt">{currentQ.prompt}</h2>
-              <p className="n-quiz-subtext">{currentQ.subtext}</p>
-              <div className="n-quiz-options">
+
+              {/* People counter */}
+              <div className="r-people-counter">
+                <span className="r-people-num">{formatNum(displayNumber)}</span>
+                <span className="r-people-label">
+                  {activeLevel >= 0
+                    ? activeLevel === 0
+                      ? "person"
+                      : "people"
+                    : ""}
+                </span>
+              </div>
+
+              {/* Level label */}
+              {activeLevel >= 0 && (
+                <div className="r-level-label" key={`label-${activeLevel}`}>
+                  {RING_LABELS[activeLevel]}
+                </div>
+              )}
+            </div>
+
+            {/* Fact card */}
+            {activeLevel >= 0 && (
+              <div className="r-fact-card" key={`fact-${activeLevel}`}>
+                <p className="r-fact-body">
+                  {selectedChoice.levels[activeLevel].fact}
+                </p>
+                <div className="r-fact-credit">
+                  {"\uD83D\uDCD6"} {selectedChoice.levels[activeLevel].factSource}
+                </div>
+              </div>
+            )}
+
+            {/* Skip / Continue buttons */}
+            <div className="r-ripple-actions">
+              {!rippleComplete && (
+                <button
+                  className="r-skip-btn"
+                  onClick={skipRipple}
+                >
+                  Skip to full ripple {"\u2192"}
+                </button>
+              )}
+              {rippleComplete && (
+                <button
+                  className="n-btn n-btn-mint"
+                  onClick={handleTransition}
+                >
+                  That{"\u2019"}s my ripple. What{"\u2019"}s next?
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M5 12h14M13 5l7 7-7 7"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PHASE 3: TRANSITION */}
+      {phase === "transition" && selectedChoice && rippleSavings && (
+        <section className="r-transition">
+          <div className="r-transition-inner">
+            <div className="r-transition-emoji">{selectedChoice.icon}</div>
+            <h2 className="r-transition-headline">
+              Your ripple:{" "}
+              <span className="r-transition-highlight">
+                {selectedChoice.label.toLowerCase()}
+              </span>
+            </h2>
+
+            <div className="r-transition-stats">
+              <div className="r-stat">
+                <span className="r-stat-num">{rippleSavings.you}</span>
+                <span className="r-stat-label">saved by you each year</span>
+              </div>
+              <div className="r-stat">
+                <span className="r-stat-num">{rippleSavings.city}</span>
+                <span className="r-stat-label">if a city joins you</span>
+              </div>
+            </div>
+
+            <p className="r-transition-body">
+              That{"\u2019"}s one ripple. Now let{"\u2019"}s find{" "}
+              <em>your biggest one</em> {"\u2014"} the change that would
+              move the needle most for you personally.
+            </p>
+
+            <button className="n-btn n-btn-mint" onClick={handleStartQuiz}>
+              Find my biggest ripple
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M5 12h14M13 5l7 7-7 7"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+
+            <p className="r-transition-time">5 questions. Under 2 minutes.</p>
+          </div>
+        </section>
+      )}
+
+      {/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PHASE 4: QUIZ */}
+      {phase === "quiz" && currentQ && (
+        <section className="r-quiz" ref={quizRef}>
+          <div className="r-quiz-inner">
+            <div className="r-quiz-progress-wrap">
+              <div className="r-quiz-progress">
+                <div
+                  className="r-quiz-progress-fill"
+                  style={{
+                    width: `${((quizStep + (answers[currentQ.questionKey] ? 1 : 0)) / QUIZ_QUESTIONS.length) * 100}%`,
+                  }}
+                />
+              </div>
+              <span className="r-quiz-step">
+                {quizStep + 1} of {QUIZ_QUESTIONS.length}
+              </span>
+            </div>
+
+            <div className="r-quiz-card" key={`q-${currentQ.id}`}>
+              <h2 className="r-quiz-prompt">{currentQ.prompt}</h2>
+              <p className="r-quiz-subtext">{currentQ.subtext}</p>
+
+              <div className="r-quiz-options">
                 {currentQ.options.map((opt) => (
                   <button
                     key={opt.value}
-                    className={`n-quiz-option ${
+                    className={`r-quiz-option ${
                       answers[currentQ.questionKey] === opt.value
                         ? "selected"
                         : ""
                     }`}
-                    onClick={() => handleSelect(opt.value)}
-                    disabled={animating}
+                    onClick={() => handleQuizAnswer(opt.value)}
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
-              <div className="n-quiz-progress">
-                <div
-                  className="n-quiz-progress-fill"
-                  style={{
-                    width: `${(step / QUIZ_QUESTIONS.length) * 100}%`,
-                  }}
-                />
-              </div>
             </div>
-          )}
+          </div>
+        </section>
+      )}
 
-          {/* Fact interlude between questions */}
-          {quizPhase === "fact" && currentFact && (
-            <div className="n-interlude" key={`fact-${step}`}>
-              <div className="n-interlude-badge">
-                {"\u2728"} DID YOU KNOW?
-              </div>
-              <h3 className="n-interlude-headline">{currentFact.headline}</h3>
-              <p className="n-interlude-body">{currentFact.body}</p>
-              <div className="n-interlude-credit">
-                {"\uD83D\uDCD6"} The Carbon Almanac
-              </div>
-              <button
-                className="n-btn n-btn-mint n-btn-full"
-                onClick={handleFactContinue}
-              >
-                {step < QUIZ_QUESTIONS.length - 1
-                  ? "Next question"
-                  : "See my signal"}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 12h14M13 5l7 7-7 7"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
-
-          {/* Quiz complete prompt */}
-          {quizComplete && (
-            <div className="n-quiz-done" key="quiz-done">
-              <div className="n-quiz-done-check">{"\u2713"}</div>
-              <p>All five answered. Scroll down to see your signal.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────── REVEAL */}
-      {quizComplete && signal && (
+      {/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PHASE 5: REVEAL */}
+      {phase === "reveal" && signal && revealData && (
         <>
-          <section className="n-signal n-reveal-on-scroll" ref={revealRef}>
-            <div className="n-signal-inner">
-              <div className="n-signal-eyebrow">YOUR STARTING POINT</div>
+          <section className="r-reveal" ref={revealRef}>
+            <div className="r-reveal-inner">
+              <div className="r-reveal-emoji">{revealData.emoji}</div>
+              <div className="r-reveal-category">{revealData.label}</div>
+              <h2 className="r-reveal-headline">{revealData.headline}</h2>
+              <p className="r-reveal-body">{revealData.body}</p>
 
-              {/* Score gauge */}
-              <div className="n-gauge">
-                <svg viewBox="0 0 200 200" className="n-gauge-svg">
-                  <circle
-                    cx="100"
-                    cy="100"
-                    r="82"
-                    fill="none"
-                    stroke="var(--line-1)"
-                    strokeWidth="5"
-                  />
-                  <circle
-                    cx="100"
-                    cy="100"
-                    r="82"
-                    fill="none"
-                    stroke="var(--mint)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 82}
-                    strokeDashoffset={
-                      2 * Math.PI * 82 * (1 - displayScore / 100)
-                    }
-                    transform="rotate(-90 100 100)"
-                  />
-                </svg>
-                <div className="n-gauge-text">
-                  <span className="n-gauge-num">{displayScore}</span>
-                  <span className="n-gauge-denom">/ 100</span>
-                </div>
-              </div>
-
-              <div className="n-signal-trajectory">
-                <span className={`n-pill ${trajectory.toLowerCase()}`}>
-                  {trajectory}
-                </span>
-              </div>
-
-              <div className="n-signal-tco2e">
-                {signal.monthlyTCO2e.toFixed(1)} tonnes CO{"\u2082"} per month
-              </div>
-
-              {/* Breakdown bars */}
-              {total > 0 && (
-                <div className="n-breakdown">
-                  {bars.map((b) => (
-                    <div key={b.key} className="n-bar-row">
-                      <span className="n-bar-label">{b.label}</span>
-                      <div className="n-bar-track">
-                        <div
-                          className="n-bar-fill"
-                          style={{
-                            width: `${(b.value / total) * 100}%`,
-                            backgroundColor: b.color,
-                          }}
-                        />
+              {/* Breakdown visual */}
+              <div className="r-breakdown">
+                {[
+                  {
+                    key: "home",
+                    label: "Home",
+                    value: signal.breakdown.home,
+                    color: "var(--mint)",
+                  },
+                  {
+                    key: "flights",
+                    label: "Flights",
+                    value: signal.breakdown.flights,
+                    color: "var(--cyan)",
+                  },
+                  {
+                    key: "food",
+                    label: "Food",
+                    value: signal.breakdown.food,
+                    color: "var(--sky)",
+                  },
+                  {
+                    key: "digital",
+                    label: "Digital",
+                    value: signal.breakdown.digital,
+                    color: "var(--glow)",
+                  },
+                ]
+                  .filter((b) => b.value > 0)
+                  .map((b) => {
+                    const total =
+                      signal.breakdown.home +
+                      signal.breakdown.flights +
+                      signal.breakdown.food +
+                      signal.breakdown.digital;
+                    const pct = total > 0 ? Math.round((b.value / total) * 100) : 0;
+                    return (
+                      <div
+                        key={b.key}
+                        className={`r-bar-row ${
+                          b.key === dominantCategory ? "dominant" : ""
+                        }`}
+                      >
+                        <span className="r-bar-label">{b.label}</span>
+                        <div className="r-bar-track">
+                          <div
+                            className="r-bar-fill"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: b.color,
+                            }}
+                          />
+                        </div>
+                        <span className="r-bar-pct">{pct}%</span>
                       </div>
-                      <span className="n-bar-pct">
-                        {Math.round((b.value / total) * 100)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Insight */}
-              <div
-                className={`n-insight ${
-                  revealPhase !== "counting" ? "n-visible" : ""
-                }`}
-              >
-                <p>{signal.insight}</p>
+                    );
+                  })}
               </div>
             </div>
           </section>
 
-          {/* ──────────────────────────────────────── SWAP LEVER */}
-          <section
-            className={`n-swap n-reveal-on-scroll ${
-              revealPhase === "swap" || revealPhase === "done"
-                ? "n-visible"
-                : ""
-            }`}
-          >
-            <div className="n-swap-inner">
-              <h3 className="n-swap-headline">
-                One change. See what moves.
-              </h3>
-              <p className="n-swap-subtext">
-                Pick something you{"\u2019"}d actually try. Watch the number shift.
+          {/* \u2500\u2500 Start Your Ripple (swap section) \u2500\u2500 */}
+          <section className="r-swap n-reveal-on-scroll">
+            <div className="r-swap-inner">
+              <h3 className="r-swap-headline">Start your ripple.</h3>
+              <p className="r-swap-subtext">
+                Pick one change you{"\u2019"}d actually try. See how it adds up
+                {"\u2014"}for you and for everyone around you.
               </p>
 
-              <div className="n-swap-options">
+              <div className="r-swap-options">
                 {relevantSwaps.map((sw) => (
                   <button
                     key={sw.id}
-                    className={`n-swap-btn ${
+                    className={`r-swap-btn ${
                       selectedSwap === sw.id ? "active" : ""
                     }`}
                     onClick={() =>
@@ -780,51 +962,50 @@ export default function NarrativePage() {
                       )
                     }
                   >
-                    <span className="n-swap-icon">{sw.icon}</span>
-                    <span className="n-swap-label">{sw.label}</span>
+                    <span className="r-swap-icon">{sw.icon}</span>
+                    <span className="r-swap-label">{sw.label}</span>
                   </button>
                 ))}
               </div>
 
               {selectedSwap && (
-                <div className="n-swap-result">
-                  <p className="n-swap-description">
-                    {
-                      SWAP_OPTIONS.find((s) => s.id === selectedSwap)
-                        ?.description
-                    }
+                <div className="r-swap-result">
+                  <p className="r-swap-description">
+                    {SWAP_OPTIONS.find((s) => s.id === selectedSwap)?.description}
                   </p>
-                  <div className="n-swap-savings">
-                    <span className="n-swap-from">
-                      {signal.monthlyTCO2e.toFixed(2)}
-                    </span>
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        d="M5 12h14M13 5l7 7-7 7"
-                        stroke="var(--mint)"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span className="n-swap-to">
-                      {adjustedMonthly.toFixed(2)}
-                    </span>
-                    <span className="n-swap-unit">tonnes/mo</span>
+                  <div className="r-swap-impact">
+                    <div className="r-impact-row">
+                      <span className="r-impact-label">You</span>
+                      <span className="r-impact-value">
+                        {(
+                          (SWAP_OPTIONS.find((s) => s.id === selectedSwap)
+                            ?.savingsKg ?? 0) * 12
+                        ).toLocaleString()}{" "}
+                        kg/year
+                      </span>
+                    </div>
+                    <div className="r-impact-row">
+                      <span className="r-impact-label">1,000 people</span>
+                      <span className="r-impact-value r-impact-highlight">
+                        {Math.round(
+                          ((SWAP_OPTIONS.find((s) => s.id === selectedSwap)
+                            ?.savingsKg ?? 0) *
+                            12 *
+                            1000) /
+                            1000
+                        ).toLocaleString()}{" "}
+                        tonnes/year
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </section>
 
-          {/* ──────────────────────────────────── ALMANAC QUOTE */}
-          <section className="n-quote n-reveal-on-scroll">
-            <div className="n-quote-inner">
+          {/* \u2500\u2500 Almanac Quote \u2500\u2500 */}
+          <section className="r-quote n-reveal-on-scroll">
+            <div className="r-quote-inner">
               <blockquote>
                 <p>
                   {"\u201C"}
@@ -835,21 +1016,23 @@ export default function NarrativePage() {
                   {"\u2014"} {quote.attribution}
                 </cite>
               </blockquote>
-              <div className="n-quote-credit">
+              <div className="r-quote-credit">
                 From <strong>The Carbon Almanac</strong> &middot; Partner of The
                 Spaceship Academy
               </div>
             </div>
           </section>
 
-          {/* ──────────────────────────────── THRIVE LAB BRIDGE */}
-          <section className="n-bridge n-reveal-on-scroll">
-            <div className="n-bridge-inner">
-              <div className="n-bridge-kicker">FROM UNDERSTANDING TO ACTION</div>
+          {/* \u2500\u2500 Thrive Lab Bridge \u2500\u2500 */}
+          <section className="r-bridge n-reveal-on-scroll">
+            <div className="r-bridge-inner">
+              <div className="r-bridge-kicker">
+                FROM INDIVIDUAL INSIGHT TO COLLECTIVE ACTION
+              </div>
               <h3>
                 Ready to go deeper?{" "}
-                <span className="n-italic">Thrive Lab</span> is where this gets
-                real.
+                <span className="n-italic">Thrive Lab</span> is where ripples
+                become waves.
               </h3>
               <p>
                 One week at The Hun School of Princeton. Systems thinking,
@@ -876,27 +1059,27 @@ export default function NarrativePage() {
             </div>
           </section>
 
-          {/* ──────────────────────────────────── EMAIL CAPTURE */}
-          <section className="n-capture n-reveal-on-scroll">
-            <div className="n-capture-inner">
+          {/* \u2500\u2500 Email Capture \u2500\u2500 */}
+          <section className="r-capture n-reveal-on-scroll">
+            <div className="r-capture-inner">
               {captureStatus === "success" ? (
-                <div className="n-capture-done">
-                  <h3>You{"\u2019"}re on the list.</h3>
-                  <p>Your first Orbit digest lands Sunday.</p>
+                <div className="r-capture-done">
+                  <h3>You{"\u2019"}re in.</h3>
+                  <p>Your first ripple report lands Sunday.</p>
                 </div>
               ) : (
                 <>
-                  <h3>Get your weekly signal.</h3>
+                  <h3>Keep your ripple going.</h3>
                   <p>
-                    Your score updates each week with new data. One email. One
-                    number. One thing worth trying.
+                    One email a week. Your impact, updated. One new thing worth
+                    trying.
                   </p>
                   <form
-                    className="n-capture-form"
+                    className="r-capture-form"
                     onSubmit={handleCapture}
                     noValidate
                   >
-                    <div className="n-capture-row">
+                    <div className="r-capture-row">
                       <input
                         type="email"
                         inputMode="email"
@@ -916,15 +1099,15 @@ export default function NarrativePage() {
                           : "Send my report"}
                       </button>
                     </div>
-                    <label className="n-capture-consent">
+                    <label className="r-capture-consent">
                       <input
                         type="checkbox"
                         checked={consent}
                         onChange={(e) => setConsent(e.target.checked)}
                       />
                       <span>
-                        Yes, send me the weekly Orbit digest. I can unsubscribe
-                        any Sunday.
+                        Yes, send me the weekly ripple report. Unsubscribe any
+                        Sunday.
                       </span>
                     </label>
                   </form>
@@ -935,7 +1118,7 @@ export default function NarrativePage() {
         </>
       )}
 
-      {/* ──────────────────────────────────────────────── FOOTER */}
+      {/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 FOOTER */}
       <footer className="n-footer">
         <div className="n-footer-inner">
           <span>
