@@ -2,15 +2,14 @@
 
 // Orbit v2 — OrbitExperience
 //
-// Client wrapper that orchestrates the three phases of the Orbit experience:
+// Client wrapper that orchestrates the Orbit experience.
 //
-//   1. Quiz — five questions, builds signal from scratch
-//   2. Reveal — animated score, insight, email capture, Thrive Lab bridge
-//   3. Dashboard — the full data dashboard (server-rendered, passed as children)
+// Default: dashboard-first. Everyone lands on the full data dashboard
+// immediately. The quiz ("How heavy is your orbit?") is accessible via
+// a CTA on the page — it's an opt-in learning experience, not a gate.
 //
-// First-time visitors start at the quiz. Once they complete the reveal
-// (either by capturing email or skipping), they see the full dashboard.
-// A localStorage flag remembers returning visitors and sends them straight
+// When a visitor completes the quiz, they see the reveal screen (score,
+// insight, swap lever, Almanac quote, Thrive Lab bridge), then return
 // to the dashboard.
 
 import { useState, useEffect } from "react";
@@ -21,40 +20,30 @@ type Props = {
   children: React.ReactNode; // The full dashboard (server-rendered sections)
 };
 
-type Phase = "quiz" | "reveal" | "dashboard";
+type Phase = "dashboard" | "quiz" | "reveal";
 
 export function OrbitExperience({ children }: Props) {
-  const [phase, setPhase] = useState<Phase>("quiz");
+  const [phase, setPhase] = useState<Phase>("dashboard");
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Check if returning visitor (avoid hydration mismatch by deferring to useEffect)
   useEffect(() => {
     setMounted(true);
-    try {
-      // Use sessionStorage instead of localStorage (more ephemeral, right for a lead magnet)
-      if (sessionStorage.getItem("orbit_seen") === "1") {
-        setPhase("dashboard");
-      }
-    } catch {
-      // Private browsing or storage blocked — start fresh
-    }
   }, []);
+
+  function handleStartQuiz() {
+    setPhase("quiz");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function handleQuizComplete(result: QuizResult) {
     setQuizResult(result);
     setPhase("reveal");
-    // Scroll to top for the reveal
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleExplore() {
     setPhase("dashboard");
-    try {
-      sessionStorage.setItem("orbit_seen", "1");
-    } catch {
-      // Ignore storage errors
-    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -71,11 +60,28 @@ export function OrbitExperience({ children }: Props) {
     return <RevealScreen result={quizResult} onExplore={handleExplore} />;
   }
 
-  // Dashboard phase — render the server-rendered children plus a re-entry
-  // link to retake the quiz
+  // Dashboard phase — the default landing
   return (
     <>
       {children}
+      {/* Floating quiz CTA — invites visitors to take the quiz */}
+      <div className="quiz-cta-float">
+        <button className="quiz-cta-btn" onClick={handleStartQuiz}>
+          <span className="quiz-cta-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span className="quiz-cta-text">
+            <strong>How heavy is your orbit?</strong>
+            <span>Take the 2-minute quiz</span>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
     </>
   );
 }

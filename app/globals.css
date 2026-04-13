@@ -2723,6 +2723,79 @@ h1, h2, h3, h4 {
 
 /* ── Mobile breakpoints ────────────────────────────────────────────────── */
 
+/* ========================================================================
+   QUIZ CTA — Floating entry point on the dashboard
+   ======================================================================== */
+
+.quiz-cta-float {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  z-index: 90;
+  animation: quizCtaIn 0.6s 1.5s ease-out both;
+}
+
+@keyframes quizCtaIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.quiz-cta-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-2);
+  border: 1.5px solid var(--mint);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(94, 234, 212, 0.12), 0 0 0 0 rgba(94, 234, 212, 0);
+  -webkit-tap-highlight-color: transparent;
+  color: var(--ink-1);
+}
+
+.quiz-cta-btn:hover {
+  background: rgba(94, 234, 212, 0.08);
+  box-shadow: 0 4px 32px rgba(94, 234, 212, 0.2), 0 0 0 1px var(--mint);
+  transform: translateY(-2px);
+}
+
+.quiz-cta-icon {
+  color: var(--mint);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.quiz-cta-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 1px;
+}
+
+.quiz-cta-text strong {
+  font-family: "Satoshi", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink-0);
+  line-height: 1.2;
+}
+
+.quiz-cta-text span {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--mint);
+}
+
+.quiz-cta-btn > svg {
+  color: var(--mint);
+  flex-shrink: 0;
+}
+
+/* ── Mobile breakpoints ────────────────────────────────────────────────── */
+
 @media (max-width: 480px) {
   .reveal-form-row {
     flex-direction: column;
@@ -2750,5 +2823,12 @@ h1, h2, h3, h4 {
   }
   .fact-card {
     padding: 0 8px;
+  }
+  .quiz-cta-float {
+    right: 12px;
+    bottom: 80px;
+  }
+  .quiz-cta-btn {
+    padding: 12px 16px;
   }
 }
