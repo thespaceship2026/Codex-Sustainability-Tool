@@ -18,9 +18,9 @@ import { Dock } from "@/components/orbit/Dock";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Orbit — The Spaceship Academy",
+  title: "Orbit — How Heavy Is Your Orbit?",
   description:
-    "Your orbit, this week. A four-mission climate signal for young humans — built by The Spaceship Academy.",
+    "Discover your carbon footprint in two minutes. Powered by The Carbon Almanac, built by The Spaceship Academy.",
   themeColor: "#030714"
 };
 
