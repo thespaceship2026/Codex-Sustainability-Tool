@@ -2,18 +2,17 @@
 
 // Orbit v2 \u2014 The Ripple Effect
 //
-// A single-page experience that starts with one small change and shows
-// it rippling outward: you \u2192 10 people \u2192 1,000 \u2192 a city.
+// Innovation for people and planets. Every choice is an act of design.
 //
 // Phases:
-//   1. Pick \u2014 choose one small change
-//   2. Ripple \u2014 watch it expand with Almanac facts at each level
-//   3. Transition \u2014 summary + \u201CFind my ripple\u201D CTA
-//   4. Quiz \u2014 5 fast questions (no interludes)
-//   5. Reveal \u2014 dominant category, not a score
+//   1. Pick \u2014 choose one way to shape what\u2019s next
+//   2. Ripple \u2014 see the future you\u2019re building
+//   3. Transition \u2014 bridge to personal discovery
+//   4. Quiz \u2014 5 fast questions to find your arena
+//   5. Reveal \u2014 your superpower, not a score
 //   6. Close \u2014 quote, Thrive Lab bridge, email capture
 //
-// Fun and playful. No shame or guilt. On-brand for The Spaceship Academy.
+// Fun, playful, empowering. On-brand for The Spaceship Academy.
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
@@ -48,33 +47,33 @@ const RIPPLE_CHOICES: RippleChoice[] = [
   {
     id: "bike",
     icon: "\uD83D\uDEB2",
-    label: "Bike one commute a week",
-    tagline: "Swap the car for pedals, just once a week.",
+    label: "Redesign your commute",
+    tagline: "Join the movement reinventing how cities move.",
     monthlySavingsKg: 24,
     color: "var(--mint)",
     levels: [
       {
         scale: "YOU",
         people: "1",
-        fact: "One car-free commute day per week saves roughly 24 kg of CO\u2082 a month. That\u2019s almost 300 kg a year\u2014about the weight of a grand piano, vanished.",
+        fact: "One car-free commute day per week saves roughly 24 kg of CO\u2082 a month. That\u2019s nearly 300 kg a year\u2014and it\u2019s the kind of design thinking that reshapes cities.",
         factSource: "The Carbon Almanac, Biggest Individual Actions",
       },
       {
         scale: "YOUR CIRCLE",
         people: "10",
-        fact: "When ten people bike one day a week, they save about 3 tonnes of CO\u2082 a year. Researchers at Imperial College London found that going car-free is one of the top three personal climate actions.",
+        fact: "When ten people rethink their commute, they eliminate about 3 tonnes of CO\u2082 a year. Imperial College London found that going car-free is one of the top three highest-impact choices anyone can make.",
         factSource: "The Carbon Almanac, Transport",
       },
       {
         scale: "YOUR TOWN",
         people: "1,000",
-        fact: "A thousand commuters biking once a week removes 288 tonnes of CO\u2082 a year\u2014equivalent to taking 62 cars off the road permanently.",
+        fact: "A thousand people reimagining their commute removes 288 tonnes of CO\u2082 a year\u2014equivalent to taking 62 cars off the road permanently. That\u2019s a community redesigning its future.",
         factSource: "The Carbon Almanac, Transport",
       },
       {
         scale: "YOUR CITY",
         people: "500,000",
-        fact: "Half a million people making this one swap would eliminate 144,000 tonnes of CO\u2082 annually. That\u2019s more than the yearly emissions of some small countries.",
+        fact: "Half a million people rethinking movement would eliminate 144,000 tonnes of CO\u2082 annually. That\u2019s not behavior change. That\u2019s a mobility revolution.",
         factSource: "The Carbon Almanac, Transport",
       },
     ],
@@ -82,33 +81,33 @@ const RIPPLE_CHOICES: RippleChoice[] = [
   {
     id: "meals",
     icon: "\uD83C\uDF31",
-    label: "Two plant meals a week",
-    tagline: "Swap beef for plants, just two meals a week.",
+    label: "Reinvent your plate",
+    tagline: "Be part of the food systems revolution.",
     monthlySavingsKg: 45,
     color: "var(--cyan)",
     levels: [
       {
         scale: "YOU",
         people: "1",
-        fact: "Producing one pound of beef generates about 30 pounds of CO\u2082. Swapping two beef meals a week for plants saves roughly 45 kg of CO\u2082 a month.",
+        fact: "Producing one pound of beef generates about 30 pounds of CO\u2082. Choosing plants twice a week makes you part of the fastest-growing food innovation movement on the planet.",
         factSource: "The Carbon Almanac, Food & Agriculture",
       },
       {
         scale: "YOUR CIRCLE",
         people: "10",
-        fact: "Ten people swapping two meals a week saves over 5 tonnes of CO\u2082 a year. Livestock accounts for 61% of all food production emissions\u2014small meal shifts are the fastest lever any person can pull.",
+        fact: "Ten people shifting two meals a week diverts over 5 tonnes of CO\u2082 a year. Livestock accounts for 61% of all food production emissions\u2014this is where future shapers are focusing.",
         factSource: "The Carbon Almanac, Food & Agriculture",
       },
       {
         scale: "YOUR TOWN",
         people: "1,000",
-        fact: "A thousand people making this swap keeps 540 tonnes of CO\u2082 out of the atmosphere each year. That\u2019s like powering every home in a small village with clean energy.",
+        fact: "A thousand people reimagining their plates keeps 540 tonnes of CO\u2082 out of the atmosphere each year. The food system is being redesigned right now\u2014and it starts with what you eat.",
         factSource: "The Carbon Almanac, Food & Agriculture",
       },
       {
         scale: "YOUR CITY",
         people: "500,000",
-        fact: "Half a million people choosing plants twice a week would prevent 270,000 tonnes of CO\u2082 annually. One plate at a time, multiplied half a million times.",
+        fact: "Half a million people reinventing how they eat would prevent 270,000 tonnes of CO\u2082 annually. That\u2019s not a diet. That\u2019s a food system transformation.",
         factSource: "The Carbon Almanac, Food & Agriculture",
       },
     ],
@@ -116,33 +115,33 @@ const RIPPLE_CHOICES: RippleChoice[] = [
   {
     id: "flight",
     icon: "\u2708\uFE0F",
-    label: "Skip one flight this year",
-    tagline: "Stay grounded for one trip. Take the train.",
+    label: "Rethink how you travel",
+    tagline: "Pioneer the future of low-carbon exploration.",
     monthlySavingsKg: 96,
     color: "var(--sky)",
     levels: [
       {
         scale: "YOU",
         people: "1",
-        fact: "A single round-trip flight from San Francisco to London produces about as much CO\u2082 as a full year of driving. Skipping one flight saves roughly 1,150 kg\u2014the single biggest lever most people have.",
+        fact: "A single round-trip flight from San Francisco to London produces about as much CO\u2082 as a full year of driving. Choosing the train or a closer destination is the single highest-leverage move most people can make.",
         factSource: "The Carbon Almanac, Climate Change for Rookies",
       },
       {
         scale: "YOUR CIRCLE",
         people: "10",
-        fact: "Ten people skipping one long flight each saves 11.5 tonnes of CO\u2082. In Sweden, \u201Cflygskam\u201D (flight shame) became so mainstream that domestic air travel dropped 9% in a single year.",
+        fact: "Ten people choosing surface travel over one long flight saves 11.5 tonnes of CO\u2082. In Sweden, the shift to rail became so popular that domestic air travel dropped 9% in a single year.",
         factSource: "The Carbon Almanac, Travel & Transport",
       },
       {
         scale: "YOUR TOWN",
         people: "1,000",
-        fact: "A thousand people choosing the train over one flight saves 1,150 tonnes of CO\u2082. That\u2019s the equivalent of a small forest absorbing carbon for an entire year.",
+        fact: "A thousand people pioneering low-carbon travel saves 1,150 tonnes of CO\u2082. That\u2019s the equivalent of a small forest absorbing carbon for an entire year\u2014created by people who chose to explore differently.",
         factSource: "The Carbon Almanac, Travel & Transport",
       },
       {
         scale: "YOUR CITY",
         people: "500,000",
-        fact: "Half a million people skipping one flight each would prevent 575,000 tonnes of CO\u2082. That\u2019s a number governments spend billions trying to achieve.",
+        fact: "Half a million people reimagining travel would prevent 575,000 tonnes of CO\u2082. That\u2019s not sacrifice. That\u2019s a generation reinventing how the world explores.",
         factSource: "The Carbon Almanac, Travel & Transport",
       },
     ],
@@ -150,33 +149,33 @@ const RIPPLE_CHOICES: RippleChoice[] = [
   {
     id: "unplug",
     icon: "\uD83D\uDD0C",
-    label: "Unplug what you\u2019re not using",
-    tagline: "Kill standby power. It adds up more than you\u2019d think.",
+    label: "Hack your energy footprint",
+    tagline: "The smartest energy is the energy you never use.",
     monthlySavingsKg: 15,
     color: "var(--glow)",
     levels: [
       {
         scale: "YOU",
         people: "1",
-        fact: "Plug loads\u2014every device, charger, and appliance left on standby\u2014account for around 50% of a building\u2019s total energy use. Unplugging saves roughly 15 kg of CO\u2082 a month.",
+        fact: "Plug loads\u2014every device, charger, and appliance on standby\u2014account for around 50% of a building\u2019s total energy use. Hacking that invisible waste is one of the smartest moves you can make.",
         factSource: "The Carbon Almanac, Built Environment",
       },
       {
         scale: "YOUR CIRCLE",
         people: "10",
-        fact: "Ten people unplugging idle devices saves nearly 2 tonnes of CO\u2082 a year. Gaming consoles alone can use 150\u2013216 Wh per hour of play\u2014and they keep drawing power when you walk away.",
+        fact: "Ten people getting smart about idle power saves nearly 2 tonnes of CO\u2082 a year. Gaming consoles alone draw 150\u2013216 Wh per hour\u2014and keep drawing when you walk away. The first step is seeing what others miss.",
         factSource: "The Carbon Almanac, Energy at Home",
       },
       {
         scale: "YOUR TOWN",
         people: "1,000",
-        fact: "A thousand households killing standby power removes 180 tonnes of CO\u2082 annually. The stuff you forgot was on is quietly adding up, everywhere.",
+        fact: "A thousand households hacking standby power removes 180 tonnes of CO\u2082 annually. It\u2019s the kind of systems thinking that turns invisible waste into visible innovation.",
         factSource: "The Carbon Almanac, Built Environment",
       },
       {
         scale: "YOUR CITY",
         people: "500,000",
-        fact: "Half a million households unplugging would save 90,000 tonnes of CO\u2082 a year. All from the things nobody even noticed were running.",
+        fact: "Half a million households redesigning their energy use would save 90,000 tonnes of CO\u2082 a year. All from seeing what nobody else noticed.",
         factSource: "The Carbon Almanac, Built Environment",
       },
     ],
@@ -185,7 +184,7 @@ const RIPPLE_CHOICES: RippleChoice[] = [
 
 // Ring colors per level
 const RING_COLORS = ["var(--mint)", "var(--cyan)", "var(--sky)", "var(--glow)"];
-const RING_LABELS = ["YOU", "10 PEOPLE", "1,000 PEOPLE", "A CITY"];
+const RING_LABELS = ["YOU", "YOUR CREW", "A MOVEMENT", "A CITY"];
 
 // \u2500\u2500 Quiz questions (same 5, reframed for ripple) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
@@ -205,7 +204,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "HOME_BASELINE",
     questionKey: "home.country",
     prompt: "Where in the world are you?",
-    subtext: "Your energy grid shapes your starting ripple.",
+    subtext: "Every grid is different. This shapes what innovation looks like where you live.",
     options: [
       { value: "US", label: "\uD83C\uDDFA\uD83C\uDDF8 United States" },
       { value: "UK", label: "\uD83C\uDDEC\uD83C\uDDE7 United Kingdom" },
@@ -218,8 +217,8 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 2,
     missionKey: "HOME_BASELINE",
     questionKey: "home.car_ownership",
-    prompt: "How do you get around?",
-    subtext: "Movement is one of your biggest ripple-makers.",
+    prompt: "How do you move?",
+    subtext: "Mobility is being reinvented right now. Where are you in that story?",
     options: [
       { value: "none", label: "Walk, bike, or transit" },
       { value: "shared", label: "Car-share or occasional use" },
@@ -232,10 +231,10 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 3,
     missionKey: "FLIGHT_QUESTION",
     questionKey: "flight.intent",
-    prompt: "Flying this year?",
-    subtext: "This is the single highest-leverage choice most people make.",
+    prompt: "How do you explore?",
+    subtext: "How you travel is one of the most powerful design decisions you make each year.",
     options: [
-      { value: "none", label: "Staying grounded" },
+      { value: "none", label: "Staying grounded this year" },
       { value: "one_short", label: "One short trip" },
       { value: "one_long", label: "One longer trip" },
       { value: "two_plus", label: "A few trips" },
@@ -247,7 +246,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     missionKey: "FOOD_CHOICES",
     questionKey: "food.diet_type",
     prompt: "What\u2019s on your plate?",
-    subtext: "Your plate is where individual change compounds fastest.",
+    subtext: "The food system is being redesigned. Your plate is where you shape it.",
     options: [
       { value: "heavy_meat", label: "Lots of red meat" },
       { value: "meat", label: "Mostly chicken and pork" },
@@ -261,8 +260,8 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 5,
     missionKey: "HOME_BASELINE",
     questionKey: "home.heating_fuel",
-    prompt: "What heats your home?",
-    subtext: "The invisible half of most home energy use.",
+    prompt: "What powers your home?",
+    subtext: "The energy transition starts in the places we live. This is yours.",
     options: [
       { value: "electric", label: "Electricity or heat pump" },
       { value: "gas", label: "Natural gas" },
@@ -280,27 +279,27 @@ const CATEGORY_REVEAL: Record<
 > = {
   home: {
     emoji: "\uD83C\uDFE0",
-    label: "YOUR HOME",
-    headline: "Your home is your biggest ripple-maker.",
-    body: "Changes to how you heat and power your space have an outsized effect. A heat pump alone can cut your home\u2019s footprint in half.",
+    label: "YOUR ARENA: ENERGY",
+    headline: "You\u2019re an energy innovator.",
+    body: "How you heat and power your space is where you have the most leverage right now. The people redesigning home energy are shaping the grid of the future\u2014and that starts with your home.",
   },
   flights: {
     emoji: "\u2708\uFE0F",
-    label: "YOUR FLIGHTS",
-    headline: "The sky is where your biggest ripple lives.",
-    body: "One fewer flight can move the needle more than everything else combined. When you stay grounded, the numbers shift fast.",
+    label: "YOUR ARENA: TRAVEL",
+    headline: "You\u2019re a travel pioneer.",
+    body: "How you explore the world is your single most powerful design decision. The future of travel is being written right now by people who choose to move differently.",
   },
   food: {
     emoji: "\uD83C\uDF31",
-    label: "YOUR PLATE",
-    headline: "Your plate is your superpower.",
-    body: "A few shifts each week can move the needle faster than almost anything else. Small choices, compounding daily.",
+    label: "YOUR ARENA: FOOD SYSTEMS",
+    headline: "You\u2019re a food systems innovator.",
+    body: "Your plate is where individual choices reshape entire supply chains. Every meal is a vote for the food system you want to see\u2014and yours carries more weight than you think.",
   },
   digital: {
     emoji: "\uD83D\uDD0C",
-    label: "YOUR DEVICES",
-    headline: "Your digital life is the quiet lever.",
-    body: "Streaming, cloud storage, always-on devices\u2014it adds up. The good news? Small unplugs compound into big savings.",
+    label: "YOUR ARENA: DIGITAL",
+    headline: "You\u2019re a digital systems thinker.",
+    body: "You see what others miss. Streaming, cloud storage, always-on devices\u2014invisible infrastructure with visible impact. The people who understand this are the ones who\u2019ll redesign it.",
   },
 };
 
@@ -317,40 +316,40 @@ type SwapOption = {
 const SWAP_OPTIONS: SwapOption[] = [
   {
     id: "flight",
-    label: "Skip one flight",
-    description: "One fewer round-trip this year.",
+    label: "Explore by rail",
+    description: "Pioneer a different way to see the world.",
     savingsKg: 230,
     relevantTo: ["one_short", "one_long", "two_plus", "frequent"],
     icon: "\u2708\uFE0F",
   },
   {
     id: "meat",
-    label: "Two plant days a week",
-    description: "Swap beef for plants just two days.",
+    label: "Redesign two meals",
+    description: "Join the food innovation movement, twice a week.",
     savingsKg: 45,
     relevantTo: ["heavy_meat", "meat", "flexitarian"],
     icon: "\uD83C\uDF31",
   },
   {
     id: "transport",
-    label: "Bike one commute",
-    description: "Pedals instead of petrol, once a week.",
+    label: "Reinvent your commute",
+    description: "Be part of the mobility revolution, one day a week.",
     savingsKg: 60,
     relevantTo: ["petrol", "shared"],
     icon: "\uD83D\uDEB2",
   },
   {
     id: "heat",
-    label: "Switch to a heat pump",
-    description: "A fraction of the energy of gas or oil.",
+    label: "Go heat pump",
+    description: "The smartest energy upgrade most homes can make.",
     savingsKg: 80,
     relevantTo: ["gas", "oil"],
     icon: "\uD83C\uDFE0",
   },
   {
     id: "digital",
-    label: "Unplug idle devices",
-    description: "Kill standby power at home.",
+    label: "Hack your power draw",
+    description: "See the invisible energy others miss.",
     savingsKg: 15,
     relevantTo: ["US", "UK", "FR", "DE", "OTHER"],
     icon: "\uD83D\uDD0C",
@@ -655,13 +654,13 @@ export default function NarrativePage() {
               THE RIPPLE EFFECT
             </div>
             <h1 className="r-pick-headline">
-              One small change.
+              One bold move.
               <br />
-              <span className="n-italic">Watch it ripple.</span>
+              <span className="n-italic">See the future you{"\u2019"}re building.</span>
             </h1>
             <p className="r-pick-sub">
-              Pick one thing you{"\u2019"}d actually try. We{"\u2019"}ll show you
-              what happens when it spreads.
+              Every system-level change starts with one person who chose to do
+              something differently. Pick yours.
             </p>
 
             <div className="r-choices">
@@ -763,7 +762,7 @@ export default function NarrativePage() {
                   className="n-btn n-btn-mint"
                   onClick={handleTransition}
                 >
-                  That{"\u2019"}s my ripple. What{"\u2019"}s next?
+                  That{"\u2019"}s my move. What{"\u2019"}s next?
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <path
                       d="M5 12h14M13 5l7 7-7 7"
@@ -786,7 +785,7 @@ export default function NarrativePage() {
           <div className="r-transition-inner">
             <div className="r-transition-emoji">{selectedChoice.icon}</div>
             <h2 className="r-transition-headline">
-              Your ripple:{" "}
+              Your move:{" "}
               <span className="r-transition-highlight">
                 {selectedChoice.label.toLowerCase()}
               </span>
@@ -795,22 +794,22 @@ export default function NarrativePage() {
             <div className="r-transition-stats">
               <div className="r-stat">
                 <span className="r-stat-num">{rippleSavings.you}</span>
-                <span className="r-stat-label">saved by you each year</span>
+                <span className="r-stat-label">your impact each year</span>
               </div>
               <div className="r-stat">
                 <span className="r-stat-num">{rippleSavings.city}</span>
-                <span className="r-stat-label">if a city joins you</span>
+                <span className="r-stat-label">when a city follows your lead</span>
               </div>
             </div>
 
             <p className="r-transition-body">
-              That{"\u2019"}s one ripple. Now let{"\u2019"}s find{" "}
-              <em>your biggest one</em> {"\u2014"} the change that would
-              move the needle most for you personally.
+              That{"\u2019"}s one move. Now let{"\u2019"}s find{" "}
+              <em>your arena</em> {"\u2014"} the place where you
+              can shape the future most.
             </p>
 
             <button className="n-btn n-btn-mint" onClick={handleStartQuiz}>
-              Find my biggest ripple
+              Find my arena
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M5 12h14M13 5l7 7-7 7"
@@ -822,7 +821,7 @@ export default function NarrativePage() {
               </svg>
             </button>
 
-            <p className="r-transition-time">5 questions. Under 2 minutes.</p>
+            <p className="r-transition-time">5 questions. Under 2 minutes. Zero judgment.</p>
           </div>
         </section>
       )}
@@ -943,10 +942,10 @@ export default function NarrativePage() {
           {/* \u2500\u2500 Start Your Ripple (swap section) \u2500\u2500 */}
           <section className="r-swap n-reveal-on-scroll">
             <div className="r-swap-inner">
-              <h3 className="r-swap-headline">Start your ripple.</h3>
+              <h3 className="r-swap-headline">Make your first move.</h3>
               <p className="r-swap-subtext">
-                Pick one change you{"\u2019"}d actually try. See how it adds up
-                {"\u2014"}for you and for everyone around you.
+                Pick one thing you{"\u2019"}d actually do. See what happens when
+                one person leads{"\u2014"}and others follow.
               </p>
 
               <div className="r-swap-options">
@@ -1027,17 +1026,18 @@ export default function NarrativePage() {
           <section className="r-bridge n-reveal-on-scroll">
             <div className="r-bridge-inner">
               <div className="r-bridge-kicker">
-                FROM INDIVIDUAL INSIGHT TO COLLECTIVE ACTION
+                INNOVATION FOR PEOPLE AND PLANETS
               </div>
               <h3>
-                Ready to go deeper?{" "}
-                <span className="n-italic">Thrive Lab</span> is where ripples
-                become waves.
+                Ready to build?{" "}
+                <span className="n-italic">Thrive Lab</span> is where future
+                shapers go to work.
               </h3>
               <p>
                 One week at The Hun School of Princeton. Systems thinking,
-                planetary boundaries, and the kind of learning that changes how
-                you see every decision. Grades 9{"\u2013"}12. Summer 2026.
+                planetary boundaries, and the tools to turn insight into
+                innovation. For the next generation of changemakers.
+                Grades 9{"\u2013"}12. Summer 2026.
               </p>
               <a
                 className="n-btn n-btn-mint"
@@ -1045,7 +1045,7 @@ export default function NarrativePage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Explore the programme
+                Join Thrive Lab
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M5 12h14M13 5l7 7-7 7"
@@ -1065,14 +1065,14 @@ export default function NarrativePage() {
               {captureStatus === "success" ? (
                 <div className="r-capture-done">
                   <h3>You{"\u2019"}re in.</h3>
-                  <p>Your first ripple report lands Sunday.</p>
+                  <p>Your first future-shaper briefing lands Sunday.</p>
                 </div>
               ) : (
                 <>
-                  <h3>Keep your ripple going.</h3>
+                  <h3>Stay in the loop.</h3>
                   <p>
-                    One email a week. Your impact, updated. One new thing worth
-                    trying.
+                    One email a week. New ideas, new innovations, new ways to
+                    shape what{"\u2019"}s next.
                   </p>
                   <form
                     className="r-capture-form"
@@ -1106,8 +1106,8 @@ export default function NarrativePage() {
                         onChange={(e) => setConsent(e.target.checked)}
                       />
                       <span>
-                        Yes, send me the weekly ripple report. Unsubscribe any
-                        Sunday.
+                        Yes, send me the weekly future-shaper briefing.
+                        Unsubscribe any time.
                       </span>
                     </label>
                   </form>

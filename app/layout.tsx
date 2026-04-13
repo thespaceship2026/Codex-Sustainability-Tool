@@ -18,9 +18,9 @@ import { Dock } from "@/components/orbit/Dock";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Orbit — Start Your Ripple",
+  title: "Orbit — Shape What\u2019s Next",
   description:
-    "One small change. Watch it ripple. Discover your impact in two minutes. Powered by The Carbon Almanac, built by The Spaceship Academy.",
+    "Every system-level change starts with one person. Find your arena for impact in two minutes. Powered by The Carbon Almanac, built by The Spaceship Academy.",
   themeColor: "#030714"
 };
 
