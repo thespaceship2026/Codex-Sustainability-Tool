@@ -26,32 +26,33 @@ export function RevealScreen({ result, onExplore }: Props) {
   const [consent, setConsent] = useState(true);
   const [captureStatus, setCaptureStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [captureError, setCaptureError] = useState<string | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Animate score counter
+  // Animate score counter — uses setInterval + Date.now so the animation
+  // completes even if the tab isn't in the foreground (RAF pauses in
+  // background tabs, which can leave the counter at zero).
   useEffect(() => {
     const duration = 1800; // ms
-    const start = performance.now();
+    const start = Date.now();
 
-    function tick(now: number) {
-      const elapsed = now - start;
+    function tick() {
+      const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
       // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplayScore(Math.round(eased * score));
 
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
+      if (progress >= 1) {
+        if (timerRef.current) clearInterval(timerRef.current);
         // Score counted up — show insight after a beat
         setTimeout(() => setPhase("insight"), 400);
         setTimeout(() => setPhase("capture"), 1600);
       }
     }
 
-    rafRef.current = requestAnimationFrame(tick);
+    timerRef.current = setInterval(tick, 16);
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [score]);
 
