@@ -1,13 +1,14 @@
 // Orbit v2 — dashboard root page.
 //
 // Server component. Loads the current OrbitSnapshot once (via Prisma) and
-// hands slices of it to each dashboard section. No client state here; the
-// only interactive islands are the TopNav mode switcher and the Dock, and
-// they wire themselves up.
+// hands slices of it to each dashboard section. The OrbitExperience wrapper
+// manages the three-phase flow: Quiz → Reveal → Dashboard.
 //
-// Session → label helpers live at the bottom so page.tsx reads top-down.
+// First-time visitors see the 5-question quiz. After the reveal (or if
+// they've visited before in this session), they see the full dashboard.
 
 import { loadOrbitSnapshot, DEFAULT_HANDLE } from "@/lib/orbit/data";
+import { OrbitExperience } from "@/components/orbit/OrbitExperience";
 import { TopNav } from "@/components/orbit/TopNav";
 import { Hero } from "@/components/orbit/Hero";
 import { Starmap } from "@/components/orbit/Starmap";
@@ -30,7 +31,7 @@ export default async function OrbitDashboardPage() {
   const lastSyncLabel = `${pad(now.getHours())}:${pad(now.getMinutes())} · ${timezoneAbbrev(now)}`;
 
   return (
-    <>
+    <OrbitExperience>
       <TopNav
         snapshot={snapshot}
         weekLabel={weekLabelShort}
@@ -54,7 +55,7 @@ export default async function OrbitDashboardPage() {
         mode={snapshot.traveller.mode}
         lastSyncLabel={lastSyncLabel}
       />
-    </>
+    </OrbitExperience>
   );
 }
 
